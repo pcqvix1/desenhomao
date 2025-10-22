@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>HandDraw Pro — Profissional</title>
 
-<!-- Bootstrap + Icons -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -20,6 +19,10 @@
   .app{display:flex;gap:16px;height:100vh;padding:18px}
   .stage{flex:1;position:relative;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.02) saturate(1.05)}
+  /* CORREÇÃO DO BUG: Estilo para espelhar o vídeo horizontalmente */
+  video.mirrored {
+    transform: scaleX(-1);
+  }
   canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   .panel{width:380px;backdrop-filter:blur(8px);background:var(--glass);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
   .title{font-weight:700;font-size:18px}
@@ -101,7 +104,6 @@
   </div>
 </div>
 
-<!-- libs -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -186,6 +188,17 @@ window.addEventListener('resize', resizeCanvases);
 
 /* UI wiring */
 thicknessEl.addEventListener('input', ()=> thickVal.textContent = thicknessEl.value);
+
+// CORREÇÃO DO BUG: Função para aplicar o espelhamento do vídeo no elemento <video>
+function updateMirror(){
+  if(mirrorToggle.checked){
+    video.classList.add('mirrored');
+  } else {
+    video.classList.remove('mirrored');
+  }
+}
+mirrorToggle.addEventListener('change', updateMirror); // Listener para manter o vídeo espelhado em sincronia
+
 eraserBtn.addEventListener('click', ()=> {
   erasing = !erasing;
   eraserBtn.classList.toggle('btn-primary', erasing);
@@ -284,7 +297,7 @@ function exportSVG(){
     const color = s.color;
     const width = s.width;
     const pointsAttr = s.points.map(p=>`${p.x},${p.y}`).join(' ');
-    svg += `<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" points="${pointsAttr}" opacity="${s.eraser?0.15:1}"/>`;
+    svg += `<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" opacity="${s.eraser?0.15:1}" points="${pointsAttr}"/>`;
   }
   svg += `</svg>`;
   const blob = new Blob([svg], {type:'image/svg+xml'});
@@ -484,6 +497,7 @@ function onResults(results){
   if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){
     prevHud = null;
     prevPoint = null;
+    // if user paused, we keep drawing disabled
     return;
   }
   const lm = results.multiHandLandmarks[0];
@@ -502,17 +516,20 @@ function onResults(results){
   // handle open hand = pause/resume toggle
   if(open){
     statusText.textContent = 'Pausado (mão aberta) — mova para retomar';
+    // do not draw
     prevPoint = null;
+    // short-circuit HUD (still show)
   } else {
     statusText.textContent = 'Câmera ativa ✅';
   }
 
-  // handle fist -> clear if held
+  // handle fist -> if held for > FIST_HOLD_MS then clear
   if(fist){
     if(!fistStart) fistStart = performance.now();
     else {
       const held = performance.now() - fistStart;
       if(held > FIST_HOLD_MS){
+        // clear
         pushHistory();
         ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
         strokes.length = 0;
@@ -528,14 +545,13 @@ function onResults(results){
   if(pinchToggle.checked){
     const thumb = lm[4];
     const d = Math.hypot(tip.x - thumb.x, tip.y - thumb.y);
-    drawNow = d < 0.055;
+    drawNow = d < 0.055; // tuning
   }
 
-  // HUD smoothing
+  // HUD smoothing (simple low-pass)
   if(!prevHud) prevHud = {x,y}; 
   prevHud.x = prevHud.x*0.7 + x*0.3;
   prevHud.y = prevHud.y*0.7 + y*0.3;
-
   hud.beginPath();
   hud.arc(prevHud.x, prevHud.y, 12, 0, Math.PI*2);
   hud.fillStyle = 'rgba(125,211,252,0.18)';
@@ -544,40 +560,34 @@ function onResults(results){
   hud.strokeStyle = 'rgba(125,211,252,0.5)';
   hud.stroke();
 
+  // if open hand -> don't draw
   if(open) { prevPoint = null; return; }
 
+  // if drawing now -> start or continue stroke
   if(drawNow){
     const t = performance.now();
-    const point = { x: prevHud.x, y: prevHud.y, t: t };
+    const point = { x: x, y: y, t: t };
 
+    // if no current stroke, start one
     if(!currentStroke){
-        pushHistory();
-        currentStroke = { points: [], color: colorEl.value, width: Number(thicknessEl.value), eraser: erasing, start: t };
-        // coloca o primeiro ponto do stroke na bolinha
-        currentStroke.points.push({ x: prevHud.x, y: prevHud.y, t: t });
-        strokes.push(currentStroke);
+      pushHistory();
+      currentStroke = { points: [], color: colorEl.value, width: Number(thicknessEl.value), eraser: erasing, start: t };
+      strokes.push(currentStroke);
     }
-
-    // adiciona ponto atual
+    // append point
     currentStroke.points.push(point);
-
-    // se houver apenas 2 ou 3 pontos, repete o ponto inicial para suavização
-    while(currentStroke.points.length < 4){
-        currentStroke.points.unshift({ ...point });
-    }
-
-    // desenha o último segmento
-    const pts = currentStroke.points;
-    const len = pts.length;
-    const segmentPts = [ pts[len-4], pts[len-3], pts[len-2], pts[len-1] ];
-    const w = computeWidth(segmentPts[2], segmentPts[3], currentStroke.width);
-    drawCatmullRomSegment(ctx, segmentPts, currentStroke.color, w, currentStroke.eraser);
-  } else if(currentStroke.points.length === 2){
+    // incremental draw: take the last 4 points for catmull (if present) or simple line
+    if(currentStroke.points.length >= 4){
+      // to avoid redrawing entire stroke, draw the last spline segment
+      const pts = currentStroke.points;
+      const len = pts.length;
+      const segmentPts = [ pts[len-4], pts[len-3], pts[len-2], pts[len-1] ];
+      // compute dynamic width by speed
+      const w = computeWidth(segmentPts[2], segmentPts[3], currentStroke.width);
+      drawCatmullRomSegment(ctx, segmentPts, currentStroke.color, w, currentStroke.eraser);
+    } else if(currentStroke.points.length === 2){
+      // initial simple line
       const p0 = currentStroke.points[0], p1 = currentStroke.points[1];
-      // força primeiro segmento a seguir HUD
-      p0.x = prevHud.x; p0.y = prevHud.y;
-      p1.x = prevHud.x; p1.y = prevHud.y;
-
       ctx.beginPath();
       ctx.moveTo(p0.x,p0.y);
       ctx.lineTo(p1.x,p1.y);
@@ -589,14 +599,16 @@ function onResults(results){
       ctx.stroke();
       ctx.globalCompositeOperation = 'source-over';
     }
-
+    // throttle auto-save periodically
     if(t - (lastTime || 0) > 250){
       saveToLocalStorage();
       lastTime = t;
     }
     prevPoint = point;
   } else {
+    // ended drawing gesture
     if(currentStroke){
+      // finalize: if too few points, draw simple line to end
       if(currentStroke.points.length === 1){
         const p = currentStroke.points[0];
         ctx.beginPath();
@@ -660,6 +672,9 @@ function toggleTheme(){
 
 /* Save on unload */
 window.addEventListener('beforeunload', ()=> saveToLocalStorage());
+
+// CORREÇÃO DO BUG: Chamada inicial para garantir que o espelhamento do vídeo está correto ao carregar a página
+updateMirror(); 
 
 </script>
 </body>
