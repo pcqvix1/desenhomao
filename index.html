@@ -548,25 +548,31 @@ function onResults(results){
 
   if(drawNow){
     const t = performance.now();
-    const point = { x: prevHud.x, y: prevHud.y, t: t }; // sempre HUD
+    const point = { x: prevHud.x, y: prevHud.y, t: t };
 
-    // --- CORREÇÃO: adiciona primeiro ponto do stroke na posição da bolinha ---
     if(!currentStroke){
-      pushHistory();
-      currentStroke = { points: [], color: colorEl.value, width: Number(thicknessEl.value), eraser: erasing, start: t };
-      currentStroke.points.push({ x: prevHud.x, y: prevHud.y, t: t }); // ponto inicial atrás da bolinha
-      strokes.push(currentStroke);
+        pushHistory();
+        currentStroke = { points: [], color: colorEl.value, width: Number(thicknessEl.value), eraser: erasing, start: t };
+        // coloca o primeiro ponto do stroke na bolinha
+        currentStroke.points.push({ x: prevHud.x, y: prevHud.y, t: t });
+        strokes.push(currentStroke);
     }
 
+    // adiciona ponto atual
     currentStroke.points.push(point);
 
-    if(currentStroke.points.length >= 4){
-      const pts = currentStroke.points;
-      const len = pts.length;
-      const segmentPts = [ pts[len-4], pts[len-3], pts[len-2], pts[len-1] ];
-      const w = computeWidth(segmentPts[2], segmentPts[3], currentStroke.width);
-      drawCatmullRomSegment(ctx, segmentPts, currentStroke.color, w, currentStroke.eraser);
-    } else if(currentStroke.points.length === 2){
+    // se houver apenas 2 ou 3 pontos, repete o ponto inicial para suavização
+    while(currentStroke.points.length < 4){
+        currentStroke.points.unshift({ ...point });
+    }
+
+    // desenha o último segmento
+    const pts = currentStroke.points;
+    const len = pts.length;
+    const segmentPts = [ pts[len-4], pts[len-3], pts[len-2], pts[len-1] ];
+    const w = computeWidth(segmentPts[2], segmentPts[3], currentStroke.width);
+    drawCatmullRomSegment(ctx, segmentPts, currentStroke.color, w, currentStroke.eraser);
+  } else if(currentStroke.points.length === 2){
       const p0 = currentStroke.points[0], p1 = currentStroke.points[1];
       // força primeiro segmento a seguir HUD
       p0.x = prevHud.x; p0.y = prevHud.y;
