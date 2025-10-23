@@ -19,7 +19,7 @@
   .app{display:flex;gap:16px;height:100vh;padding:18px}
   .stage{flex:1;position:relative;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.02) saturate(1.05)}
-  /* CORREÇÃO DO BUG #1: Estilo para espelhar o vídeo quando o toggle está ativo */
+  /* CORREÇÃO DO BUG #1: Adição da classe para espelhamento visual do vídeo */
   video.mirrored {
     transform: scaleX(-1);
   }
@@ -567,7 +567,7 @@ function onResults(results){
   if(drawNow){
     const t = performance.now();
     // CORREÇÃO DO BUG #2: Usa o ponto suavizado (prevHud) para o desenho.
-    // Isso garante que o desenho sai de dentro da bolinha HUD.
+    // Isso garante que o traço sai exatamente de dentro da bolinha HUD.
     const point = { x: prevHud.x, y: prevHud.y, t: t };
 
     // if no current stroke, start one
