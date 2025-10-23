@@ -101,9 +101,9 @@
   </div>
 </div>
 
-<!-- libs -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<!-- libs (versões explícitas para evitar 404) -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1620243929/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -300,6 +300,7 @@ async function startReplay(){
   const overlay = document.createElement('canvas');
   overlay.width = drawCanvas.width; overlay.height = drawCanvas.height;
   overlay.style.position = 'absolute'; overlay.style.left = drawCanvas.style.left; overlay.style.top = drawCanvas.style.top;
+  overlay.style.zIndex = 1000;
   const octx = overlay.getContext('2d');
   document.getElementById('stage').appendChild(overlay);
   // clear overlay
@@ -456,7 +457,8 @@ async function initCameraAndHands(){
 
 function setupHands(){
   const hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    // use explicit version path to match the included script and avoid 404
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`
   });
   hands.setOptions({
     maxNumHands: 1,
@@ -480,11 +482,14 @@ let fistStart = 0;
 const FIST_HOLD_MS = 900;
 
 function onResults(results){
+  // clear HUD drawing area
   hud.clearRect(0,0,hudCanvas.width,hudCanvas.height);
+
   if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){
     prevHud = null;
     prevPoint = null;
-    // if user paused, we keep drawing disabled
+    // update small status text
+    statusText.textContent = 'Aguardando mão...';
     return;
   }
   const lm = results.multiHandLandmarks[0];
@@ -493,7 +498,11 @@ function onResults(results){
   const tip = lm[8];
   const rawX = tip.x * drawCanvas.width;
   const rawY = tip.y * drawCanvas.height;
-  const x = mirrorToggle.checked ? (drawCanvas.width - rawX) : rawX;
+
+  // IMPORTANT: mirror the X coordinate only if the video is visually mirrored.
+  // This keeps the visual bolinha aligned with the mirrored video.
+  const isMirrored = mirrorToggle.checked || (video.style.transform && video.style.transform.includes('scaleX(-1)'));
+  const x = isMirrored ? (drawCanvas.width - rawX) : rawX;
   const y = rawY;
 
   // detect gestures
@@ -505,7 +514,7 @@ function onResults(results){
     statusText.textContent = 'Pausado (mão aberta) — mova para retomar';
     // do not draw
     prevPoint = null;
-    // short-circuit HUD (still show)
+    // still draw HUD position indicator though
   } else {
     statusText.textContent = 'Câmera ativa ✅';
   }
@@ -535,10 +544,12 @@ function onResults(results){
     drawNow = d < 0.055; // tuning
   }
 
-  // HUD smoothing (simple low-pass)
-  if(!prevHud) prevHud = {x,y}; 
+  // HUD smoothing (simple low-pass) - uses the already mirrored x so HUD visually lines up with video
+  if(!prevHud) prevHud = {x,y};
   prevHud.x = prevHud.x*0.7 + x*0.3;
   prevHud.y = prevHud.y*0.7 + y*0.3;
+
+  // draw HUD circle that follows the finger (this will visually appear at finger even when video is mirrored)
   hud.beginPath();
   hud.arc(prevHud.x, prevHud.y, 12, 0, Math.PI*2);
   hud.fillStyle = 'rgba(125,211,252,0.18)';
@@ -547,7 +558,7 @@ function onResults(results){
   hud.strokeStyle = 'rgba(125,211,252,0.5)';
   hud.stroke();
 
-  // if open hand -> don't draw
+  // if open hand -> don't draw on canvas
   if(open) { prevPoint = null; return; }
 
   // if drawing now -> start or continue stroke
@@ -612,6 +623,19 @@ function onResults(results){
 
 /* init */
 initCameraAndHands();
+
+/* ---------------------------
+   MIRROR TOGGLE: only change video element transform (visual)
+   --------------------------- */
+mirrorToggle.addEventListener('change', () => {
+  if (mirrorToggle.checked) {
+    video.style.transform = 'scaleX(-1)';
+  } else {
+    video.style.transform = 'scaleX(1)';
+  }
+});
+// set initial transform according to initial checkbox state
+video.style.transform = mirrorToggle.checked ? 'scaleX(-1)' : 'scaleX(1)';
 
 /* voice commands (optional) */
 if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
