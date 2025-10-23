@@ -1,665 +1,255 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>HandDraw Pro — Profissional</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Desenho com a Mão — Bootstrap Edition</title>
 
-<!-- Bootstrap + Icons -->
+<!-- Bootstrap CSS + Icons -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
 <style>
-  :root{
-    --bg-dark: #071226;
-    --glass: rgba(12,18,30,0.6);
-    --accent: #7dd3fc;
-    --muted: #9fb9da;
+  body {
+    background: #0a0f1a;
+    color: #e9f2ff;
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
   }
-  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-dark),#020617);font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef8}
-  .app{display:flex;gap:16px;height:100vh;padding:18px}
-  .stage{flex:1;position:relative;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
-  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.02) saturate(1.05)}
-  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .panel{width:380px;backdrop-filter:blur(8px);background:var(--glass);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
-  .title{font-weight:700;font-size:18px}
-  .status{font-size:13px;color:var(--muted)}
-  .hud-dot{position:absolute;width:26px;height:26px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
-  .small{font-size:13px}
-  .controls .btn{min-width:110px}
-  .toggle-theme{cursor:pointer}
-  /* neon stroke shadow for canvas */
-  .neon {
-    filter: drop-shadow(0 0 8px rgba(125,211,252,0.22)) drop-shadow(0 0 12px rgba(125,211,252,0.08));
+  .app {
+    display: flex;
+    height: 100vh;
+    padding: 16px;
+    gap: 16px;
   }
-  /* responsive */
-  @media(max-width:920px){
-    .panel{width:300px}
+  .stage {
+    flex: 1;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  }
+  video, canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  video { transform: scaleX(1); }
+  canvas { pointer-events: none; }
+  .panel {
+    width: 360px;
+    backdrop-filter: blur(8px);
+    background: rgba(15,20,40,0.7);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .status-box {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    background: rgba(0,0,0,0.5);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  #errorBox {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    background: rgba(120,0,0,0.7);
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #ffdede;
+    display: none;
   }
 </style>
 </head>
 <body>
+
 <div class="app">
   <div class="stage" id="stage">
-    <video id="cam" autoplay playsinline muted></video>
-    <canvas id="draw" class="neon"></canvas>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="draw"></canvas>
     <canvas id="hud"></canvas>
-
-    <div style="position:absolute;left:12px;bottom:12px;z-index:50;background:rgba(0,0,0,0.45);padding:8px;border-radius:8px">
-      <span class="small">Status:</span> <strong id="statusText">Iniciando...</strong>
-    </div>
-
-    <div id="errorBox" style="position:absolute;left:12px;top:12px;z-index:60;background:#3b1414;color:#ffdede;padding:8px;border-radius:8px;display:none"></div>
+    <div id="errorBox"></div>
+    <div class="status-box">Status: <span id="status">Iniciando...</span></div>
   </div>
 
   <div class="panel">
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        <div class="title"><i class="bi bi-brush"></i> HandDraw Pro</div>
-        <div class="status">Desenho por movimento da mão — avançado</div>
-      </div>
-      <div>
-        <button id="themeToggle" class="btn btn-sm btn-outline-light" title="Alternar tema"><i class="bi bi-circle-half"></i></button>
-      </div>
+    <h5><i class="bi bi-hand-index-thumb me-2"></i>Desenho com a Mão</h5>
+
+    <div class="d-flex align-items-center gap-2">
+      <label class="form-label mb-0 small">Cor:</label>
+      <input id="color" class="form-control form-control-color" type="color" value="#7dd3fc" style="width:60px">
     </div>
 
-    <div class="row g-2 align-items-center">
-      <div class="col-auto">
-        <label class="form-label small mb-0">Cor</label>
-        <input id="color" type="color" class="form-control form-control-color" value="#7dd3fc" style="width:64px;height:40px;padding:0">
-      </div>
-      <div class="col">
-        <label class="form-label small mb-0">Tamanho: <span id="thickVal">8</span>px</label>
-        <input id="thickness" type="range" class="form-range" min="1" max="120" value="8">
-      </div>
+    <div>
+      <label class="form-label small mb-1">Espessura: <span id="thickVal">8</span>px</label>
+      <input id="thickness" type="range" min="2" max="50" value="8" class="form-range">
     </div>
 
-    <div class="d-flex gap-2 align-items-center">
-      <div class="form-check form-switch">
-        <input id="pinchToggle" class="form-check-input" type="checkbox" checked>
-        <label class="form-check-label small" for="pinchToggle">Pinçar para desenhar</label>
-      </div>
-      <div class="form-check form-switch ms-2">
-        <input id="mirrorToggle" class="form-check-input" type="checkbox" checked>
-        <label class="form-check-label small" for="mirrorToggle">Espelhar X</label>
-      </div>
+    <div class="form-check form-switch">
+      <input class="form-check-input" id="pinchToggle" type="checkbox" checked>
+      <label class="form-check-label small" for="pinchToggle">Pinçar para desenhar</label>
     </div>
 
-    <div class="controls d-flex gap-2 flex-wrap">
-      <button id="eraserBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-eraser"></i> Borracha</button>
-      <button id="undoBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
-      <button id="redoBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-clockwise"></i> Redo</button>
-      <button id="clearBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-trash"></i> Limpar</button>
-      <button id="savePngBtn" class="btn btn-primary btn-sm"><i class="bi bi-download"></i> Salvar PNG</button>
-      <button id="saveSvgBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-filetype-svg"></i> Exportar SVG</button>
-      <button id="replayBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-play-fill"></i> Replay</button>
+    <div class="form-check form-switch">
+      <input class="form-check-input" id="mirrorToggle" type="checkbox" checked>
+      <label class="form-check-label small" for="mirrorToggle">Espelhar X</label>
     </div>
 
-    <div class="mt-auto small text-muted">
-      Dicas: <strong>Pinça</strong> para desenhar. <strong>Mão aberta</strong> pausa; feche a mão (1s) para limpar. Voz: diga “limpar”, “salvar”, “pausar”, “retomar”, “undo”.
+    <div class="btn-group flex-wrap">
+      <button id="eraser" class="btn btn-outline-light btn-sm"><i class="bi bi-eraser"></i> Borracha</button>
+      <button id="clear" class="btn btn-outline-light btn-sm"><i class="bi bi-trash"></i> Limpar</button>
+      <button id="save" class="btn btn-outline-light btn-sm"><i class="bi bi-download"></i> Salvar</button>
     </div>
+
+    <small class="text-muted mt-auto">
+      💡 Use pinça (polegar + indicador) para desenhar.  
+      Se quiser desenhar livremente, desative a opção “Pinçar”.
+    </small>
   </div>
 </div>
 
-<!-- libs -->
+<!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<!-- Bootstrap -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-/* ---------------------------
-   Globals & Elements
-   --------------------------- */
-const video = document.getElementById('cam');
+const video = document.getElementById('video');
 const drawCanvas = document.getElementById('draw');
 const hudCanvas = document.getElementById('hud');
-const ctx = drawCanvas.getContext('2d', { alpha:true });
-const hud = hudCanvas.getContext('2d', { alpha:true });
-
-const statusText = document.getElementById('statusText');
-const errorBox = document.getElementById('errorBox');
+const ctx = drawCanvas.getContext('2d');
+const hud = hudCanvas.getContext('2d');
 
 const colorEl = document.getElementById('color');
 const thicknessEl = document.getElementById('thickness');
 const thickVal = document.getElementById('thickVal');
 const pinchToggle = document.getElementById('pinchToggle');
 const mirrorToggle = document.getElementById('mirrorToggle');
+const eraserBtn = document.getElementById('eraser');
+const clearBtn = document.getElementById('clear');
+const saveBtn = document.getElementById('save');
+const statusEl = document.getElementById('status');
+const errorBox = document.getElementById('errorBox');
 
-const eraserBtn = document.getElementById('eraserBtn');
-const undoBtn = document.getElementById('undoBtn');
-const redoBtn = document.getElementById('redoBtn');
-const clearBtn = document.getElementById('clearBtn');
-const savePngBtn = document.getElementById('savePngBtn');
-const saveSvgBtn = document.getElementById('saveSvgBtn');
-const replayBtn = document.getElementById('replayBtn');
-const themeToggle = document.getElementById('themeToggle');
-
-let cameraObj = null;
-let running = false;
 let erasing = false;
 let prevPoint = null;
-let prevHud = null;
+let cameraObj = null;
+let camStarted = false;
 
-/* history for undo/redo - store ImageData snapshots */
-const undoStack = [];
-const redoStack = [];
-const MAX_HISTORY = 20;
-
-/* draw recording for replay (array of strokes), each stroke = {points: [{x,y,t}], color, width, eraser} */
-const strokes = [];
-let currentStroke = null;
-
-/* store last timestamp for speed calcs */
-let lastTime = 0;
-
-/* theme */
-let darkTheme = true;
-
-/* Resize canvases (preserve draw content) */
-function resizeCanvases(){
-  const rect = document.getElementById('stage').getBoundingClientRect();
-  const ratio = window.devicePixelRatio || 1;
-  const newW = Math.floor(rect.width * ratio);
-  const newH = Math.floor(rect.height * ratio);
-
-  // preserve draw
-  const tmp = document.createElement('canvas');
-  tmp.width = drawCanvas.width || newW;
-  tmp.height = drawCanvas.height || newH;
-  tmp.getContext('2d').drawImage(drawCanvas,0,0);
-
-  drawCanvas.width = newW; drawCanvas.height = newH;
-  hudCanvas.width = newW; hudCanvas.height = newH;
-
-  drawCanvas.style.width = rect.width + 'px';
-  drawCanvas.style.height = rect.height + 'px';
-  hudCanvas.style.width = rect.width + 'px';
-  hudCanvas.style.height = rect.height + 'px';
-
-  const scale = ratio;
-  ctx.setTransform(scale,0,0,scale,0,0);
-  ctx.drawImage(tmp,0,0, tmp.width, tmp.height, 0,0, drawCanvas.width, drawCanvas.height);
-
-  hud.setTransform(scale,0,0,scale,0,0);
-}
-window.addEventListener('resize', resizeCanvases);
-
-/* UI wiring */
+// Atualiza espessura
 thicknessEl.addEventListener('input', ()=> thickVal.textContent = thicknessEl.value);
 eraserBtn.addEventListener('click', ()=> {
   erasing = !erasing;
   eraserBtn.classList.toggle('btn-primary', erasing);
-  eraserBtn.innerHTML = erasing ? '<i class="bi bi-brush"></i> Desenhar' : '<i class="bi bi-eraser"></i> Borracha';
 });
-clearBtn.addEventListener('click', ()=> {
-  pushHistory();
-  ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
-  strokes.length = 0;
-  saveToLocalStorage();
+clearBtn.addEventListener('click', ()=> ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height));
+saveBtn.addEventListener('click', ()=>{
+  const link = document.createElement('a');
+  link.download = 'desenho.png';
+  link.href = drawCanvas.toDataURL('image/png');
+  link.click();
 });
-undoBtn.addEventListener('click', undoAction);
-redoBtn.addEventListener('click', redoAction);
-savePngBtn.addEventListener('click', savePNG);
-saveSvgBtn.addEventListener('click', exportSVG);
-replayBtn.addEventListener('click', startReplay);
-themeToggle.addEventListener('click', toggleTheme);
 
-/* helper: show error */
+function resizeCanvas(){
+  drawCanvas.width = hudCanvas.width = video.clientWidth;
+  drawCanvas.height = hudCanvas.height = video.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
 function showError(msg){
   errorBox.textContent = msg;
   errorBox.style.display = 'block';
-  setTimeout(()=> errorBox.style.display = 'none', 4000);
+  setTimeout(()=> errorBox.style.display='none',5000);
 }
 
-/* History management */
-function pushHistory(){
-  try{
-    if(undoStack.length >= MAX_HISTORY) undoStack.shift();
-    const imageData = ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
-    undoStack.push(imageData);
-    // new action -> clear redo
-    redoStack.length = 0;
-  }catch(e){
-    console.warn('pushHistory failed', e);
-  }
-}
-function undoAction(){
-  if(!undoStack.length) return;
-  const last = undoStack.pop();
-  redoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
-  ctx.putImageData(last,0,0);
-  saveToLocalStorage();
-}
-function redoAction(){
-  if(!redoStack.length) return;
-  const next = redoStack.pop();
-  undoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
-  ctx.putImageData(next,0,0);
-  saveToLocalStorage();
-}
-
-/* Save/Load localStorage (PNG auto-save as bitmap) */
-function saveToLocalStorage(){
-  try{
-    const dataUrl = drawCanvas.toDataURL('image/png');
-    localStorage.setItem('handdraw_snapshot', dataUrl);
-    localStorage.setItem('handdraw_strokes', JSON.stringify(strokes));
-  }catch(e){ console.warn('save local fail', e); }
-}
-function loadFromLocalStorage(){
-  try{
-    const dataUrl = localStorage.getItem('handdraw_snapshot');
-    if(dataUrl){
-      const img = new Image();
-      img.onload = ()=> { ctx.drawImage(img,0,0,drawCanvas.width,drawCanvas.height); };
-      img.src = dataUrl;
-    }
-    const s = localStorage.getItem('handdraw_strokes');
-    if(s) {
-      const parsed = JSON.parse(s);
-      strokes.length = 0;
-      parsed.forEach(st => strokes.push(st));
-    }
-  }catch(e){ console.warn('load fail', e); }
-}
-
-/* Save PNG */
-function savePNG(){
-  const link = document.createElement('a');
-  link.href = drawCanvas.toDataURL('image/png');
-  link.download = 'handdraw.png';
-  link.click();
-}
-
-/* Export simple SVG from strokes (approximate with polyline) */
-function exportSVG(){
-  // build paths from strokes
-  const w = drawCanvas.width;
-  const h = drawCanvas.height;
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
-  svg += `<rect width="100%" height="100%" fill="none"/>`;
-  for(const s of strokes){
-    if(!s.points || s.points.length<2) continue;
-    // approximate with polyline
-    const color = s.color;
-    const width = s.width;
-    const pointsAttr = s.points.map(p=>`${p.x},${p.y}`).join(' ');
-    svg += `<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" points="${pointsAttr}" opacity="${s.eraser?0.15:1}"/>`;
-  }
-  svg += `</svg>`;
-  const blob = new Blob([svg], {type:'image/svg+xml'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'handdraw.svg'; a.click();
-  setTimeout(()=> URL.revokeObjectURL(url), 5000);
-}
-
-/* Replay: draw on a temp canvas by following recorded strokes */
-async function startReplay(){
-  if(!strokes.length) return;
-  // create overlay canvas
-  const overlay = document.createElement('canvas');
-  overlay.width = drawCanvas.width; overlay.height = drawCanvas.height;
-  overlay.style.position = 'absolute'; overlay.style.left = drawCanvas.style.left; overlay.style.top = drawCanvas.style.top;
-  const octx = overlay.getContext('2d');
-  document.getElementById('stage').appendChild(overlay);
-  // clear overlay
-  octx.clearRect(0,0,overlay.width,overlay.height);
-
-  // replay strokes sequentially
-  for(const s of strokes){
-    octx.lineJoin='round'; octx.lineCap='round';
-    octx.strokeStyle = s.color;
-    octx.lineWidth = s.width;
-    if(s.eraser) octx.globalCompositeOperation='destination-out'; else octx.globalCompositeOperation='source-over';
-    // draw points over time
-    for(let i=1;i<s.points.length;i++){
-      const p0 = s.points[i-1], p1 = s.points[i];
-      octx.beginPath();
-      octx.moveTo(p0.x,p0.y);
-      octx.lineTo(p1.x,p1.y);
-      octx.stroke();
-      await new Promise(r=>setTimeout(r, 12)); // speed control
-    }
-    octx.globalCompositeOperation='source-over';
-    await new Promise(r=>setTimeout(r, 120));
-  }
-  // fade & remove
-  overlay.style.transition='opacity 600ms';
-  overlay.style.opacity='0';
-  setTimeout(()=> overlay.remove(), 650);
-}
-
-/* ---------------------------
-   Drawing utilities
-   --------------------------- */
-
-/* speed-based width */
-function computeWidth(prev, curr, base){
-  const dx = curr.x - prev.x;
-  const dy = curr.y - prev.y;
-  const dist = Math.hypot(dx,dy);
-  const dt = Math.max(1, curr.t - prev.t); // ms
-  const speed = dist / dt; // px/ms
-  // map speed to width
-  // speed 0 -> base*1.1 ; speed large -> base*0.3
-  const min = Math.max(1, base*0.28);
-  const max = Math.max(1, base*1.15);
-  const t = Math.min(1, speed / 1.2); // tuning
-  return Math.max(min, max * (1 - t));
-}
-
-/* draw smoothed segment via Catmull-Rom sampling between last 4 points */
-function drawCatmullRomSegment(ctxLocal, pts, color, width, isEraser){
-  if(pts.length < 4) return;
-  // draw only the last segment for efficiency
-  const i = pts.length - 4;
-  const p0 = pts[i], p1 = pts[i+1], p2 = pts[i+2], p3 = pts[i+3];
-  // draw with many t values
-  const steps = 12;
-  if(isEraser) ctxLocal.globalCompositeOperation='destination-out'; else ctxLocal.globalCompositeOperation='source-over';
-  ctxLocal.strokeStyle = color;
-  ctxLocal.lineJoin = 'round';
-  ctxLocal.lineCap = 'round';
-  for(let s=0;s<steps;s++){
-    const t0 = s / steps;
-    const t1 = (s+1) / steps;
-    // compute points
-    const x0 = 0.5*((-p0.x+3*p1.x-3*p2.x+p3.x)*t0*t0*t0 + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t0*t0 + (-p0.x+p2.x)*t0 + p1.x);
-    const y0 = 0.5*((-p0.y+3*p1.y-3*p2.y+p3.y)*t0*t0*t0 + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t0*t0 + (-p0.y+p2.y)*t0 + p1.y);
-    const x1 = 0.5*((-p0.x+3*p1.x-3*p2.x+p3.x)*t1*t1*t1 + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t1*t1 + (-p0.x+p2.x)*t1 + p1.x);
-    const y1 = 0.5*((-p0.y+3*p1.y-3*p2.y+p3.y)*t1*t1*t1 + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t1*t1 + (-p0.y+p2.y)*t1 + p1.y);
-    ctxLocal.beginPath();
-    ctxLocal.moveTo(x0,y0);
-    ctxLocal.lineTo(x1,y1);
-    ctxLocal.lineWidth = width;
-    ctxLocal.stroke();
-  }
-  ctxLocal.globalCompositeOperation='source-over';
-}
-
-/* add point and draw incremental */
-function addPointToStroke(stroke, pt){
-  stroke.points.push(pt);
-  // if we have enough points, draw last segment
-  if(stroke.points.length >= 4){
-    // compute width based on recent speed
-    const last = stroke.points[stroke.points.length - 2];
-    const cur = stroke.points[stroke.points.length - 1];
-    const w = computeWidth(last, cur, stroke.width);
-    drawCatmullRomSegment(ctx, stroke.points.slice(-4), stroke.color, w, stroke.eraser);
-  } else if(stroke.points.length === 2){
-    // draw simple line for first segment
-    const p0 = stroke.points[0], p1 = stroke.points[1];
-    ctx.beginPath();
-    ctx.moveTo(p0.x,p0.y);
-    ctx.lineTo(p1.x,p1.y);
-    ctx.lineWidth = stroke.width;
-    ctx.strokeStyle = stroke.eraser ? 'rgba(0,0,0,1)' : stroke.color;
-    ctx.globalCompositeOperation = stroke.eraser ? 'destination-out' : 'source-over';
-    ctx.stroke();
-    ctx.globalCompositeOperation='source-over';
-  }
-}
-
-/* ---------------------------
-   Gesture helpers (basic)
-   --------------------------- */
-/* detect open hand (most fingers extended) */
-function isOpenHand(landmarks){
-  // count extended fingers by comparing tip y vs pip y in normalized coords (simple heuristic)
-  let extended = 0;
-  const tips = [8,12,16,20]; // index, middle, ring, pinky
-  const pips = [6,10,14,18];
-  for(let i=0;i<4;i++){
-    if(landmarks[tips[i]].y < landmarks[pips[i]].y) extended++;
-  }
-  // thumb: compare x depending on hand (approx)
-  if(landmarks[4].x < landmarks[3].x) extended++;
-  return extended >= 4;
-}
-/* detect fist (most fingers folded) */
-function isFist(landmarks){
-  // compute avg distance from tips to wrist
-  const wrist = landmarks[0];
-  let sum = 0;
-  const tips = [4,8,12,16,20];
-  for(const t of tips){
-    const dx = landmarks[t].x - wrist.x;
-    const dy = landmarks[t].y - wrist.y;
-    sum += Math.hypot(dx,dy);
-  }
-  // smaller sum -> fist
-  return sum < 0.45; // tuning
-}
-
-/* ---------------------------
-   MediaPipe init + frame handling
-   --------------------------- */
+// Função principal
 async function initCameraAndHands(){
   try{
-    // request camera first (gives clearer permission errors)
     const stream = await navigator.mediaDevices.getUserMedia({video:true});
     video.srcObject = stream;
-    video.onloadedmetadata = ()=>{
-      resizeCanvases();
-      statusText.textContent = 'Câmera ativa ✅';
-      // start hands
-      setupHands();
-      loadFromLocalStorage();
+    video.onloadedmetadata = async ()=>{
+      resizeCanvas();
+      camStarted = true;
+      statusEl.textContent = 'Câmera ativa ✅';
+
+      const hands = new Hands({
+        locateFile: (file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+      hands.setOptions({
+        maxNumHands:1,
+        modelComplexity:1,
+        minDetectionConfidence:0.7,
+        minTrackingConfidence:0.7
+      });
+      hands.onResults(onResults);
+
+      const camera = new Camera(video, {
+        onFrame: async()=> { await hands.send({image: video}); },
+        width: video.videoWidth,
+        height: video.videoHeight
+      });
+      camera.start();
+      cameraObj = camera;
     };
   }catch(err){
     console.error(err);
-    showError('Permissão de câmera negada ou indisponível');
-    statusText.textContent = 'Câmera bloqueada ❌';
+    showError('⚠️ Câmera bloqueada ou não detectada');
+    statusEl.textContent = 'Câmera bloqueada ❌';
   }
 }
-
-function setupHands(){
-  const hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-  });
-  hands.setOptions({
-    maxNumHands: 1,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.68,
-    minTrackingConfidence: 0.6
-  });
-  hands.onResults(onResults);
-
-  cameraObj = new Camera(video, {
-    onFrame: async ()=>{ await hands.send({image: video}); },
-    width: video.videoWidth || 1280,
-    height: video.videoHeight || 720
-  });
-  cameraObj.start();
-  running = true;
-}
-
-/* variables for fist detection hold */
-let fistStart = 0;
-const FIST_HOLD_MS = 900;
 
 function onResults(results){
   hud.clearRect(0,0,hudCanvas.width,hudCanvas.height);
-  if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){
-    prevHud = null;
-    prevPoint = null;
-    // if user paused, we keep drawing disabled
-    return;
-  }
+  if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){ prevPoint=null; return; }
+
   const lm = results.multiHandLandmarks[0];
-
-  // compute canvas coords (landmarks are normalized [0..1])
   const tip = lm[8];
-  const rawX = tip.x * drawCanvas.width;
-  const rawY = tip.y * drawCanvas.height;
-  const x = mirrorToggle.checked ? (drawCanvas.width - rawX) : rawX;
-  const y = rawY;
+  let x = tip.x * drawCanvas.width;
+  const y = tip.y * drawCanvas.height;
+  if(mirrorToggle.checked) x = drawCanvas.width - x;
 
-  // detect gestures
-  const open = isOpenHand(lm);
-  const fist = isFist(lm);
-
-  // handle open hand = pause/resume toggle
-  if(open){
-    statusText.textContent = 'Pausado (mão aberta) — mova para retomar';
-    // do not draw
-    prevPoint = null;
-    // short-circuit HUD (still show)
-  } else {
-    statusText.textContent = 'Câmera ativa ✅';
-  }
-
-  // handle fist -> if held for > FIST_HOLD_MS then clear
-  if(fist){
-    if(!fistStart) fistStart = performance.now();
-    else {
-      const held = performance.now() - fistStart;
-      if(held > FIST_HOLD_MS){
-        // clear
-        pushHistory();
-        ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
-        strokes.length = 0;
-        saveToLocalStorage();
-        fistStart = 0;
-        showError('Tela limpa via gesto (punho)');
-      }
-    }
-  } else fistStart = 0;
-
-  // determine drawing (pinch or free)
+  const thumb = lm[4];
   let drawNow = true;
   if(pinchToggle.checked){
-    const thumb = lm[4];
     const d = Math.hypot(tip.x - thumb.x, tip.y - thumb.y);
-    drawNow = d < 0.055; // tuning
+    drawNow = d < 0.05;
   }
 
-  // HUD smoothing (simple low-pass)
-  if(!prevHud) prevHud = {x,y}; 
-  prevHud.x = prevHud.x*0.7 + x*0.3;
-  prevHud.y = prevHud.y*0.7 + y*0.3;
+  // HUD dot
   hud.beginPath();
-  hud.arc(prevHud.x, prevHud.y, 12, 0, Math.PI*2);
-  hud.fillStyle = 'rgba(125,211,252,0.18)';
+  hud.arc(x, y, 10, 0, Math.PI*2);
+  hud.fillStyle = 'rgba(100,200,255,0.2)';
   hud.fill();
-  hud.lineWidth = 1.5;
-  hud.strokeStyle = 'rgba(125,211,252,0.5)';
+  hud.strokeStyle = 'rgba(120,220,255,0.5)';
   hud.stroke();
 
-  // if open hand -> don't draw
-  if(open) { prevPoint = null; return; }
-
-  // if drawing now -> start or continue stroke
   if(drawNow){
-    const t = performance.now();
-    const point = { x: x, y: y, t: t };
-
-    // if no current stroke, start one
-    if(!currentStroke){
-      pushHistory();
-      currentStroke = { points: [], color: colorEl.value, width: Number(thicknessEl.value), eraser: erasing, start: t };
-      strokes.push(currentStroke);
-    }
-    // append point
-    currentStroke.points.push(point);
-    // incremental draw: take the last 4 points for catmull (if present) or simple line
-    if(currentStroke.points.length >= 4){
-      // to avoid redrawing entire stroke, draw the last spline segment
-      const pts = currentStroke.points;
-      const len = pts.length;
-      const segmentPts = [ pts[len-4], pts[len-3], pts[len-2], pts[len-1] ];
-      // compute dynamic width by speed
-      const w = computeWidth(segmentPts[2], segmentPts[3], currentStroke.width);
-      drawCatmullRomSegment(ctx, segmentPts, currentStroke.color, w, currentStroke.eraser);
-    } else if(currentStroke.points.length === 2){
-      // initial simple line
-      const p0 = currentStroke.points[0], p1 = currentStroke.points[1];
-      ctx.beginPath();
-      ctx.moveTo(p0.x,p0.y);
-      ctx.lineTo(p1.x,p1.y);
-      ctx.strokeStyle = currentStroke.eraser ? 'rgba(0,0,0,1)' : currentStroke.color;
-      ctx.lineWidth = currentStroke.width;
+    if(prevPoint){
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.globalCompositeOperation = currentStroke.eraser ? 'destination-out' : 'source-over';
+      ctx.strokeStyle = erasing ? 'rgba(0,0,0,1)' : colorEl.value;
+      ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+      ctx.lineWidth = Number(thicknessEl.value);
+      ctx.beginPath();
+      ctx.moveTo(prevPoint.x, prevPoint.y);
+      ctx.lineTo(x, y);
       ctx.stroke();
-      ctx.globalCompositeOperation = 'source-over';
     }
-    // throttle auto-save periodically
-    if(t - (lastTime || 0) > 250){
-      saveToLocalStorage();
-      lastTime = t;
-    }
-    prevPoint = point;
-  } else {
-    // ended drawing gesture
-    if(currentStroke){
-      // finalize: if too few points, draw simple line to end
-      if(currentStroke.points.length === 1){
-        const p = currentStroke.points[0];
-        ctx.beginPath();
-        ctx.arc(p.x,p.y, currentStroke.width/2,0,Math.PI*2);
-        ctx.fillStyle = currentStroke.eraser ? 'rgba(0,0,0,1)' : currentStroke.color;
-        ctx.fill();
-      }
-      currentStroke = null;
-      saveToLocalStorage();
-    }
-    prevPoint = null;
-  }
+    prevPoint = {x,y};
+  } else prevPoint = null;
 }
 
-/* init */
 initCameraAndHands();
-
-/* voice commands (optional) */
-if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SpeechRecognition();
-  rec.lang = 'pt-BR';
-  rec.continuous = false;
-  rec.onresult = (e)=>{
-    const text = e.results[0][0].transcript.toLowerCase();
-    if(text.includes('limpar')) { pushHistory(); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.length=0; showError('Limpo por voz'); }
-    if(text.includes('salvar')) savePNG();
-    if(text.includes('pausar')) { running=false; statusText.textContent='Pausado (voz)'; }
-    if(text.includes('retomar')) { running=true; statusText.textContent='Câmera ativa'; }
-    if(text.includes('undo')) undoAction();
-  };
-  // start recognition on long-press of help? For simplicity auto-off.
-  // You can wire a button to start rec.start()
-}
-
-/* helper computeWidth reused */
-function computeWidth(prevPt, currPt, base){
-  const dx = currPt.x - prevPt.x;
-  const dy = currPt.y - prevPt.y;
-  const dist = Math.hypot(dx,dy);
-  const dt = Math.max(1, currPt.t - prevPt.t);
-  const speed = dist / dt;
-  const min = Math.max(1, base * 0.28);
-  const max = Math.max(1, base * 1.12);
-  const t = Math.min(1, speed / 1.2);
-  return Math.max(min, max * (1 - t));
-}
-
-/* Theme toggle */
-function toggleTheme(){
-  darkTheme = !darkTheme;
-  if(darkTheme){
-    document.documentElement.style.setProperty('--bg-dark','#071226');
-    document.body.style.background = 'linear-gradient(180deg,var(--bg-dark),#020617)';
-  } else {
-    document.documentElement.style.setProperty('--bg-dark','#f7f9fb');
-    document.body.style.background = 'linear-gradient(180deg,#f7f9fb,#e6eef8)';
-    // invert some colors quickly for panel/buttons if you want (left as exercise)
-  }
-}
-
-/* Save on unload */
-window.addEventListener('beforeunload', ()=> saveToLocalStorage());
-
 </script>
 </body>
 </html>
