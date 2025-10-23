@@ -3,29 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>HandDraw Pro — Alinhamento Corrigido</title>
+<title>HandDraw Pro — Profissional</title>
 
-<!-- Bootstrap + Icons -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
 <style>
-  :root{
-    --bg-dark: #071226;
-    --glass: rgba(12,18,30,0.6);
-    --accent: #7dd3fc;
-    --muted: #9fb9da;
-  }
-  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-dark),#020617);font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef8}
-  .app{display:flex;gap:16px;height:100vh;padding:18px}
-  .stage{flex:1;position:relative;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
-  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.02) saturate(1.05); transform:scaleX(-1);} /* câmera espelhada */
-  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .panel{width:380px;backdrop-filter:blur(8px);background:var(--glass);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
-  .title{font-weight:700;font-size:18px}
-  .status{font-size:13px;color:var(--muted)}
-  .neon { filter: drop-shadow(0 0 8px rgba(125,211,252,0.22)) drop-shadow(0 0 12px rgba(125,211,252,0.08)); }
-  @media(max-width:920px){ .panel{width:300px} }
+:root{
+  --bg-dark: #071226;
+  --glass: rgba(12,18,30,0.6);
+  --accent: #7dd3fc;
+  --muted: #9fb9da;
+}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-dark),#020617);font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef8}
+.app{display:flex;gap:16px;height:100vh;padding:18px}
+.stage{flex:1;position:relative;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.02) saturate(1.05);transform:scaleX(-1);}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.panel{width:380px;backdrop-filter:blur(8px);background:var(--glass);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.title{font-weight:700;font-size:18px}
+.status{font-size:13px;color:var(--muted)}
+.hud-dot{position:absolute;width:26px;height:26px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+.small{font-size:13px}
+.controls .btn{min-width:110px}
+.toggle-theme{cursor:pointer}
+.neon { filter: drop-shadow(0 0 8px rgba(125,211,252,0.22)) drop-shadow(0 0 12px rgba(125,211,252,0.08)); }
+@media(max-width:920px){.panel{width:300px}}
 </style>
 </head>
 <body>
@@ -38,6 +41,8 @@
     <div style="position:absolute;left:12px;bottom:12px;z-index:50;background:rgba(0,0,0,0.45);padding:8px;border-radius:8px">
       <span class="small">Status:</span> <strong id="statusText">Iniciando...</strong>
     </div>
+
+    <div id="errorBox" style="position:absolute;left:12px;top:12px;z-index:60;background:#3b1414;color:#ffdede;padding:8px;border-radius:8px;display:none"></div>
   </div>
 
   <div class="panel">
@@ -45,6 +50,9 @@
       <div>
         <div class="title"><i class="bi bi-brush"></i> HandDraw Pro</div>
         <div class="status">Desenho por movimento da mão — avançado</div>
+      </div>
+      <div>
+        <button id="themeToggle" class="btn btn-sm btn-outline-light" title="Alternar tema"><i class="bi bi-circle-half"></i></button>
       </div>
     </div>
 
@@ -79,10 +87,6 @@
       <button id="saveSvgBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-filetype-svg"></i> Exportar SVG</button>
       <button id="replayBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-play-fill"></i> Replay</button>
     </div>
-
-    <div class="mt-auto small text-muted">
-      Dicas: <strong>Pinça</strong> para desenhar. <strong>Mão aberta</strong> pausa; punho fechado limpa.
-    </div>
   </div>
 </div>
 
@@ -91,20 +95,17 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-/* ========== Elements & Globals ========== */
 const video = document.getElementById('cam');
 const drawCanvas = document.getElementById('draw');
 const hudCanvas = document.getElementById('hud');
-const ctx = drawCanvas.getContext('2d', { alpha:true });
-const hud = hudCanvas.getContext('2d', { alpha:true });
-
+const ctx = drawCanvas.getContext('2d',{alpha:true});
+const hud = hudCanvas.getContext('2d',{alpha:true});
 const statusText = document.getElementById('statusText');
 const colorEl = document.getElementById('color');
 const thicknessEl = document.getElementById('thickness');
 const thickVal = document.getElementById('thickVal');
 const pinchToggle = document.getElementById('pinchToggle');
 const mirrorToggle = document.getElementById('mirrorToggle');
-
 const eraserBtn = document.getElementById('eraserBtn');
 const undoBtn = document.getElementById('undoBtn');
 const redoBtn = document.getElementById('redoBtn');
@@ -112,174 +113,166 @@ const clearBtn = document.getElementById('clearBtn');
 const savePngBtn = document.getElementById('savePngBtn');
 const saveSvgBtn = document.getElementById('saveSvgBtn');
 const replayBtn = document.getElementById('replayBtn');
+const themeToggle = document.getElementById('themeToggle');
 
-let cameraObj = null;
-let erasing = false;
-let currentStroke = null;
-let prevHud = null;
-let fistStart = 0;
-const FIST_HOLD_MS = 900;
+let running=true, erasing=false, prevHud=null, currentStroke=null;
+let strokes=[], undoStack=[], redoStack=[];
+let lastTime=0, darkTheme=true;
 
-const undoStack = [], redoStack = [], strokes = [];
-const MAX_HISTORY = 20;
-
-/* ========== Resize ========== */
+/* Resize */
 function resizeCanvases(){
   const rect = drawCanvas.getBoundingClientRect();
-  const ratio = window.devicePixelRatio || 1;
-  drawCanvas.width = rect.width * ratio;
-  drawCanvas.height = rect.height * ratio;
-  hudCanvas.width = drawCanvas.width;
-  hudCanvas.height = drawCanvas.height;
+  const ratio = window.devicePixelRatio||1;
+  drawCanvas.width = hudCanvas.width = Math.floor(rect.width*ratio);
+  drawCanvas.height = hudCanvas.height = Math.floor(rect.height*ratio);
   ctx.setTransform(ratio,0,0,ratio,0,0);
   hud.setTransform(ratio,0,0,ratio,0,0);
 }
-window.addEventListener('resize', resizeCanvases);
+window.addEventListener('resize',resizeCanvases);
 
-/* ========== UI Events ========== */
-thicknessEl.addEventListener('input', ()=> thickVal.textContent = thicknessEl.value);
-eraserBtn.addEventListener('click', ()=> {
-  erasing = !erasing;
+/* UI */
+thicknessEl.addEventListener('input',()=> thickVal.textContent=thicknessEl.value);
+eraserBtn.addEventListener('click',()=>{
+  erasing=!erasing;
   eraserBtn.classList.toggle('btn-primary', erasing);
-  eraserBtn.innerHTML = erasing ? '<i class="bi bi-brush"></i> Desenhar' : '<i class="bi bi-eraser"></i> Borracha';
+  eraserBtn.innerHTML=erasing?'<i class="bi bi-brush"></i> Desenhar':'<i class="bi bi-eraser"></i> Borracha';
 });
-clearBtn.addEventListener('click', ()=> { pushHistory(); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.length=0; saveToLocalStorage(); });
-undoBtn.addEventListener('click', undoAction);
-redoBtn.addEventListener('click', redoAction);
-savePngBtn.addEventListener('click', savePNG);
-saveSvgBtn.addEventListener('click', exportSVG);
-replayBtn.addEventListener('click', startReplay);
+clearBtn.addEventListener('click',()=>{
+  pushHistory();
+  ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  strokes.length=0;
+});
+undoBtn.addEventListener('click',undoAction);
+redoBtn.addEventListener('click',redoAction);
+savePngBtn.addEventListener('click',savePNG);
+saveSvgBtn.addEventListener('click',exportSVG);
+replayBtn.addEventListener('click',startReplay);
+themeToggle.addEventListener('click',toggleTheme);
 
-/* ========== Helpers ========== */
+/* History */
 function pushHistory(){
-  try{
-    if(undoStack.length>=MAX_HISTORY) undoStack.shift();
-    undoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
-    redoStack.length=0;
-  }catch(e){console.warn(e);}
+  if(undoStack.length>=20) undoStack.shift();
+  undoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
+  redoStack.length=0;
 }
-function undoAction(){ if(!undoStack.length) return; redoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height)); ctx.putImageData(undoStack.pop(),0,0); saveToLocalStorage();}
-function redoAction(){ if(!redoStack.length) return; undoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height)); ctx.putImageData(redoStack.pop(),0,0); saveToLocalStorage();}
+function undoAction(){ if(!undoStack.length) return; redoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height)); ctx.putImageData(undoStack.pop(),0,0);}
+function redoAction(){ if(!redoStack.length) return; undoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height)); ctx.putImageData(redoStack.pop(),0,0);}
 
-function saveToLocalStorage(){
-  try{
-    localStorage.setItem('handdraw_snapshot', drawCanvas.toDataURL('image/png'));
-    localStorage.setItem('handdraw_strokes', JSON.stringify(strokes));
-  }catch(e){}
-}
-function loadFromLocalStorage(){
-  try{
-    const dataUrl = localStorage.getItem('handdraw_snapshot');
-    if(dataUrl){ const img = new Image(); img.onload=()=>ctx.drawImage(img,0,0,drawCanvas.width,drawCanvas.height); img.src=dataUrl; }
-    const s = localStorage.getItem('handdraw_strokes');
-    if(s) JSON.parse(s).forEach(st=>strokes.push(st));
-  }catch(e){}
+/* Save */
+function savePNG(){ const link=document.createElement('a'); link.href=drawCanvas.toDataURL('image/png'); link.download='handdraw.png'; link.click();}
+function exportSVG(){
+  const w=drawCanvas.width, h=drawCanvas.height;
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="none"/>`;
+  for(const s of strokes){
+    if(!s.points || s.points.length<2) continue;
+    const pointsAttr = s.points.map(p=>`${p.x},${p.y}`).join(' ');
+    const color = s.eraser?'#000000':s.color;
+    svg+=`<polyline points="${pointsAttr}" fill="none" stroke="${color}" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  svg+='</svg>';
+  const blob=new Blob([svg],{type:'image/svg+xml'}), url=URL.createObjectURL(blob);
+  const link=document.createElement('a'); link.href=url; link.download='handdraw.svg'; link.click();
 }
 
-/* ========= Drawing ========= */
-function addPointToCurrentStroke(pt){
-  currentStroke.points.push(pt);
-  if(currentStroke.points.length>=2){
-    const p0=currentStroke.points[currentStroke.points.length-2];
-    const p1=currentStroke.points[currentStroke.points.length-1];
+/* Replay */
+function startReplay(){
+  if(!strokes.length) return;
+  ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  let i=0;
+  const replayInterval = setInterval(()=>{
+    if(i>=strokes.length){ clearInterval(replayInterval); return; }
+    const s=strokes[i++];
+    for(let j=1;j<s.points.length;j++){
+      const p0=s.points[j-1], p1=s.points[j];
+      ctx.beginPath();
+      ctx.moveTo(p0.x,p0.y); ctx.lineTo(p1.x,p1.y);
+      ctx.lineWidth=s.width; ctx.lineCap='round'; ctx.lineJoin='round';
+      if(s.eraser){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)'; }
+      else { ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=s.color; }
+      ctx.stroke(); ctx.globalCompositeOperation='source-over';
+    }
+  },30);
+}
+
+/* Theme */
+function toggleTheme(){
+  darkTheme=!darkTheme;
+  document.body.style.background=darkTheme?'linear-gradient(180deg,var(--bg-dark),#020617)':'#f0f0f0';
+}
+
+/* Drawing utils */
+function addPointToStroke(stroke,pt){
+  stroke.points.push(pt);
+  if(stroke.points.length>=2){
+    const p0=stroke.points[stroke.points.length-2];
+    const p1=stroke.points[stroke.points.length-1];
     ctx.beginPath(); ctx.moveTo(p0.x,p0.y); ctx.lineTo(p1.x,p1.y);
-    ctx.lineWidth=currentStroke.width;
-    ctx.strokeStyle=currentStroke.eraser?'rgba(0,0,0,1)':currentStroke.color;
-    ctx.globalCompositeOperation = currentStroke.eraser?'destination-out':'source-over';
-    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
-    ctx.globalCompositeOperation='source-over';
+    ctx.lineWidth=stroke.width; ctx.lineCap='round'; ctx.lineJoin='round';
+    if(stroke.eraser){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='rgba(0,0,0,1)';}
+    else{ ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=stroke.color;}
+    ctx.stroke(); ctx.globalCompositeOperation='source-over';
   }
 }
 
-/* ========= Gestures ========= */
-function isOpenHand(lm){
-  let extended=0; const tips=[8,12,16,20]; const pips=[6,10,14,18];
-  for(let i=0;i<4;i++) if(lm[tips[i]].y<lm[pips[i]].y) extended++;
-  if(lm[4].x<lm[3].x) extended++;
-  return extended>=4;
-}
-function isFist(lm){
-  let sum=0; const wrist=lm[0]; const tips=[4,8,12,16,20];
-  for(const t of tips) sum+=Math.hypot(lm[t].x-wrist.x, lm[t].y-wrist.y);
-  return sum<0.45;
-}
-
-/* ========= MediaPipe ========= */
+/* MediaPipe Hands */
 async function initCameraAndHands(){
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({ video:true });
+    const stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
     video.srcObject = stream;
-    await video.play();
-    resizeCanvases();
-
-    const hands = new Hands({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
-    hands.setOptions({ maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.6 });
-    hands.onResults(onResults);
-
-    cameraObj = new Camera(video, { onFrame: async ()=>await hands.send({ image:video }), width:video.videoWidth, height:video.videoHeight });
-    await cameraObj.start();
-    statusText.textContent='Câmera ativa ✅';
-    loadFromLocalStorage();
+    video.onloadedmetadata=()=>{
+      resizeCanvases();
+      setupHands();
+      statusText.textContent='Pronto';
+    };
   }catch(e){
     console.error(e);
-    statusText.textContent='Câmera bloqueada ❌';
+    document.getElementById('errorBox').style.display='block';
+    document.getElementById('errorBox').textContent='Erro ao acessar a câmera';
   }
 }
 
-/* ========= onResults corrigido ========= */
-let prevPoint=null;
+function setupHands(){
+  const hands = new Hands({locateFile:file=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.6});
+  hands.onResults(onResults);
+
+  const cam = new Camera(video,{onFrame:async()=>await hands.send({image:video}),width:video.videoWidth,height:video.videoHeight});
+  cam.start();
+}
+
 function onResults(results){
   hud.clearRect(0,0,hudCanvas.width,hudCanvas.height);
-  if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){ prevHud=null; prevPoint=null; currentStroke=null; return; }
-  const lm = results.multiHandLandmarks[0];
-
-  const rect = drawCanvas.getBoundingClientRect();
-  const cssW = rect.width; const cssH = rect.height;
-
-  const tip = lm[8];
-  let x = tip.x*cssW, y=tip.y*cssH;
-  if(mirrorToggle.checked) x = cssW-x;
+  if(!results.multiHandLandmarks?.length){ prevHud=null; currentStroke=null; return; }
+  const lm=results.multiHandLandmarks[0];
+  let tip=lm[8], thumb=lm[4];
+  let x = tip.x*drawCanvas.width, y = tip.y*drawCanvas.height;
+  x = mirrorToggle.checked ? drawCanvas.width-x : x;
 
   if(!prevHud) prevHud={x,y};
-  prevHud.x = prevHud.x*0.7 + x*0.3;
-  prevHud.y = prevHud.y*0.7 + y*0.3;
+  prevHud.x=prevHud.x*0.7+x*0.3; prevHud.y=prevHud.y*0.7+y*0.3;
 
-  hud.beginPath();
-  hud.arc(prevHud.x, prevHud.y, 12, 0, Math.PI*2);
+  // Draw HUD dot
+  hud.beginPath(); hud.arc(prevHud.x,prevHud.y,12,0,Math.PI*2);
   hud.fillStyle='rgba(125,211,252,0.18)'; hud.fill();
   hud.lineWidth=1.5; hud.strokeStyle='rgba(125,211,252,0.5)'; hud.stroke();
 
-  const now = performance.now();
-  const pt = {x:prevHud.x,y:prevHud.y,t:now};
-
-  if(isOpenHand(lm)){ statusText.textContent='Pausado (mão aberta)'; prevPoint=null; currentStroke=null; return; } 
-  else statusText.textContent='Câmera ativa ✅';
-
-  if(isFist(lm)){
-    if(!fistStart) fistStart=now;
-    else if(now-fistStart>FIST_HOLD_MS){
-      pushHistory(); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.length=0; saveToLocalStorage(); fistStart=0;
-    }
-  } else fistStart=0;
-
-  let drawNow=true;
-  if(pinchToggle.checked){
-    const thumb=lm[4];
-    const d=Math.hypot(tip.x-thumb.x, tip.y-thumb.y);
-    drawNow=d<0.055;
-  }
+  // Pinch detection
+  const d=Math.hypot(tip.x-thumb.x,tip.y-thumb.y);
+  const drawNow = pinchToggle.checked ? d<0.055 : true;
 
   if(drawNow){
-    if(!currentStroke){ pushHistory(); currentStroke={points:[],color:colorEl.value,width:Number(thicknessEl.value),eraser:erasing,start:now}; strokes.push(currentStroke);}
-    addPointToCurrentStroke(pt);
-  } else currentStroke=null;
+    const pt={x:prevHud.x,y:prevHud.y,t:performance.now()};
+    if(!currentStroke){
+      currentStroke={points:[],color:colorEl.value,width:Number(thicknessEl.value),eraser:erasing};
+      strokes.push(currentStroke);
+      pushHistory();
+    }
+    addPointToStroke(currentStroke,pt);
+  }else currentStroke=null;
 }
 
-/* ========= Save/Replay ========= */
-function savePNG(){ const link=document.createElement('a'); link.href=drawCanvas.toDataURL('image/png'); link.download='handdraw.png'; link.click(); }
-function exportSVG(){ const w=drawCanvas.width,h=drawCanvas.height; let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="none"/>`; for(const s of strokes){ if(!s.points||s.points.length<2) continue; const color=s.color; const width=s.width; const pointsAttr=s.points.map(p=>`${p.x},${p.y}`).join(' '); svg+=`<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" points="${pointsAttr}" opacity="${s.eraser?0.15:1}"/>`; } svg+='</svg>'; const blob=new Blob([svg],{type:'image/svg+xml'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='handdraw.svg'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);}
-async function startReplay(){ if(!strokes.length) return; const overlay=document.createElement('canvas'); overlay.width=drawCanvas.width; overlay.height=drawCanvas.height; overlay.style.position='absolute'; overlay.style.left='0'; overlay.style.top='0'; overlay.style.zIndex=1000; const octx=overlay.getContext('2d'); document.getElementById('stage').appendChild(overlay); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); for(const s of strokes){ for(let i=1;i<s.points.length;i++){ octx.beginPath(); octx.moveTo(s.points[i-1].x,s.points[i-1].y); octx.lineTo(s.points[i].x,s.points[i].y); octx.lineWidth=s.width; octx.strokeStyle=s.eraser?'rgba(0,0,0,1)':s.color; octx.stroke(); await new Promise(r=>setTimeout(r,12)); } } overlay.remove(); }
-
+/* Init */
+resizeCanvases();
 initCameraAndHands();
 </script>
 </body>
