@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>HandDraw Pro — Profissional (Enhanced)</title>
+<title>HandDraw Pro — Profissional</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -14,50 +14,34 @@
     --glass: rgba(12,18,30,0.6);
     --accent: #7dd3fc;
     --muted: #9fb9da;
-    --panel-transition: 200ms ease;
   }
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef8}
-  /* GRADIENT DINÂMICO (neon tech) */
-  @keyframes neonShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-  body.dark {
-    background: linear-gradient(120deg,#071226 0%, #020617 50%, #001525 100%);
-    background-size: 300% 300%;
-    animation: neonShift 18s ease-in-out infinite;
-  }
-  body.light {
-    background: linear-gradient(120deg,#f7f9fb 0%, #e6eef8 50%, #d7e8f5 100%);
-    background-size: 300% 300%;
-    animation: neonShift 18s ease-in-out infinite;
-  }
-
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-dark),#020617);font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef8}
   .app{display:flex;gap:16px;height:100vh;padding:18px}
   .stage{flex:1;position:relative;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.02) saturate(1.05)}
-  video.mirrored { transform: scaleX(-1); }
+  /* CORREÇÃO DO BUG #1: Adição da classe para espelhamento visual do vídeo */
+  video.mirrored {
+    transform: scaleX(-1);
+  }
   canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .panel{width:380px;backdrop-filter:blur(8px);background:var(--glass);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;transition:background var(--panel-transition), color var(--panel-transition)}
-  .panel *{transition:all var(--panel-transition)}
+  .panel{width:380px;backdrop-filter:blur(8px);background:var(--glass);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
   .title{font-weight:700;font-size:18px}
   .status{font-size:13px;color:var(--muted)}
   .hud-dot{position:absolute;width:26px;height:26px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
   .small{font-size:13px}
-  .controls .btn{min-width:110px;transition:transform 120ms ease}
-  .controls .btn:active{transform:scale(0.98)}
+  .controls .btn{min-width:110px}
   .toggle-theme{cursor:pointer}
   /* neon stroke shadow for canvas */
-  .neon { filter: drop-shadow(0 0 8px rgba(125,211,252,0.22)) drop-shadow(0 0 18px rgba(125,211,252,0.08)); }
-  /* HUD box */
-  .hud-box{position:absolute;right:12px;top:12px;padding:8px;background:rgba(0,0,0,0.25);backdrop-filter:blur(6px);border-radius:8px;color:#dff6ff}
-  .hud-mini{display:flex;gap:8px;align-items:center}
-  .hud-color{width:20px;height:20px;border-radius:4px;border:1px solid rgba(255,255,255,0.12)}
-  /* pulsing indicator */
-  @keyframes pulse {0%{transform:translate(-50%,-50%) scale(0.9); opacity:0.6}50%{transform:translate(-50%,-50%) scale(1.15); opacity:1}100%{transform:translate(-50%,-50%) scale(0.9); opacity:0.6}}
-  .pulse{animation: pulse 1000ms linear infinite}
+  .neon {
+    filter: drop-shadow(0 0 8px rgba(125,211,252,0.22)) drop-shadow(0 0 12px rgba(125,211,252,0.08));
+  }
   /* responsive */
-  @media(max-width:920px){ .panel{width:300px} }
+  @media(max-width:920px){
+    .panel{width:300px}
+  }
 </style>
 </head>
-<body class="dark">
+<body>
 <div class="app">
   <div class="stage" id="stage">
     <video id="cam" autoplay playsinline muted></video>
@@ -69,14 +53,9 @@
     </div>
 
     <div id="errorBox" style="position:absolute;left:12px;top:12px;z-index:60;background:#3b1414;color:#ffdede;padding:8px;border-radius:8px;display:none"></div>
-
-    <div class="hud-box" id="hudBox" style="z-index:55">
-      <div class="hud-mini"><div class="hud-color" id="hudColor"></div><div id="hudInfo">Cor <strong>#7dd3fc</strong> • <span id="hudSize">8px</span></div></div>
-    </div>
-
   </div>
 
-  <div class="panel" id="panel">
+  <div class="panel">
     <div class="d-flex justify-content-between align-items-start">
       <div>
         <div class="title"><i class="bi bi-brush"></i> HandDraw Pro</div>
@@ -120,7 +99,7 @@
     </div>
 
     <div class="mt-auto small text-muted">
-      Dicas: <strong>Pinça</strong> para desenhar. <strong>Mão aberta</strong> pausa; fechar (1s) limpa. Voz: diga “limpar”, “salvar”, “pausar”, “retomar”, “undo”.
+      Dicas: <strong>Pinça</strong> para desenhar. <strong>Mão aberta</strong> pausa; feche a mão (1s) para limpar. Voz: diga “limpar”, “salvar”, “pausar”, “retomar”, “undo”.
     </div>
   </div>
 </div>
@@ -141,9 +120,6 @@ const hud = hudCanvas.getContext('2d', { alpha:true });
 
 const statusText = document.getElementById('statusText');
 const errorBox = document.getElementById('errorBox');
-const hudColorEl = document.getElementById('hudColor');
-const hudInfo = document.getElementById('hudInfo');
-const hudSize = document.getElementById('hudSize');
 
 const colorEl = document.getElementById('color');
 const thicknessEl = document.getElementById('thickness');
@@ -160,7 +136,11 @@ const saveSvgBtn = document.getElementById('saveSvgBtn');
 const replayBtn = document.getElementById('replayBtn');
 const themeToggle = document.getElementById('themeToggle');
 
-let cameraObj = null; let running = false; let erasing = false; let prevPoint = null; let prevHud = null;
+let cameraObj = null;
+let running = false;
+let erasing = false;
+let prevPoint = null;
+let prevHud = null;
 
 /* history for undo/redo - store ImageData snapshots */
 const undoStack = [];
@@ -171,14 +151,8 @@ const MAX_HISTORY = 20;
 const strokes = [];
 let currentStroke = null;
 
-/* smoothing buffer */
-const SMOOTHING_WINDOW = 4; // media móvel
-
-/* HUD redraw limiter */
-let lastHudDraw = 0; const HUD_FPS = 60; const HUD_MS = 1000 / HUD_FPS;
-
-/* autosave debounce */
-let autosaveTimer = null;
+/* store last timestamp for speed calcs */
+let lastTime = 0;
 
 /* theme */
 let darkTheme = true;
@@ -213,232 +187,404 @@ function resizeCanvases(){
 window.addEventListener('resize', resizeCanvases);
 
 /* UI wiring */
-thicknessEl.addEventListener('input', ()=> { thickVal.textContent = thicknessEl.value; hudSize.textContent = thicknessEl.value + 'px'; scheduleAutosave(); });
-colorEl.addEventListener('input', ()=> { hudColorEl.style.background = colorEl.value; hudInfo.querySelector('strong').textContent = colorEl.value; scheduleAutosave(); });
+thicknessEl.addEventListener('input', ()=> thickVal.textContent = thicknessEl.value);
 
-// mirror
-function updateMirror(){ if(mirrorToggle.checked) video.classList.add('mirrored'); else video.classList.remove('mirrored'); }
-mirrorToggle.addEventListener('change', updateMirror);
+// CORREÇÃO DO BUG #1: Função para aplicar o espelhamento do vídeo no elemento <video>
+function updateMirror(){
+  if(mirrorToggle.checked){
+    video.classList.add('mirrored');
+  } else {
+    video.classList.remove('mirrored');
+  }
+}
+mirrorToggle.addEventListener('change', updateMirror); // Listener para manter o vídeo espelhado em sincronia
 
-// eraser toggle
 eraserBtn.addEventListener('click', ()=> {
-  erasing = !erasing; eraserBtn.classList.toggle('btn-primary', erasing);
+  erasing = !erasing;
+  eraserBtn.classList.toggle('btn-primary', erasing);
   eraserBtn.innerHTML = erasing ? '<i class="bi bi-brush"></i> Desenhar' : '<i class="bi bi-eraser"></i> Borracha';
 });
-
-clearBtn.addEventListener('click', ()=> { pushHistory(); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.length=0; saveAll(); });
+clearBtn.addEventListener('click', ()=> {
+  pushHistory();
+  ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  strokes.length = 0;
+  saveToLocalStorage();
+});
 undoBtn.addEventListener('click', undoAction);
 redoBtn.addEventListener('click', redoAction);
 savePngBtn.addEventListener('click', savePNG);
 saveSvgBtn.addEventListener('click', exportSVG);
-replayBtn.addEventListener('click', ()=> startReplay());
+replayBtn.addEventListener('click', startReplay);
 themeToggle.addEventListener('click', toggleTheme);
 
-/* keyboard shortcuts */
-window.addEventListener('keydown', (e)=>{
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undoAction(); }
-  if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==='y' || (e.shiftKey && e.key.toLowerCase()==='z'))){ e.preventDefault(); redoAction(); }
-});
-
 /* helper: show error */
-function showError(msg){ errorBox.textContent = msg; errorBox.style.display = 'block'; setTimeout(()=> errorBox.style.display = 'none', 4000); }
+function showError(msg){
+  errorBox.textContent = msg;
+  errorBox.style.display = 'block';
+  setTimeout(()=> errorBox.style.display = 'none', 4000);
+}
 
 /* History management */
-function pushHistory(){ try{ if(undoStack.length >= MAX_HISTORY) undoStack.shift(); const imageData = ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height); undoStack.push(imageData); redoStack.length = 0; }catch(e){ console.warn('pushHistory failed', e); } }
-function undoAction(){ if(!undoStack.length) return; const last = undoStack.pop(); redoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height)); ctx.putImageData(last,0,0); saveAll(); }
-function redoAction(){ if(!redoStack.length) return; const next = redoStack.pop(); undoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height)); ctx.putImageData(next,0,0); saveAll(); }
+function pushHistory(){
+  try{
+    if(undoStack.length >= MAX_HISTORY) undoStack.shift();
+    const imageData = ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+    undoStack.push(imageData);
+    // new action -> clear redo
+    redoStack.length = 0;
+  }catch(e){
+    console.warn('pushHistory failed', e);
+  }
+}
+function undoAction(){
+  if(!undoStack.length) return;
+  const last = undoStack.pop();
+  redoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
+  ctx.putImageData(last,0,0);
+  saveToLocalStorage();
+}
+function redoAction(){
+  if(!redoStack.length) return;
+  const next = redoStack.pop();
+  undoStack.push(ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
+  ctx.putImageData(next,0,0);
+  saveToLocalStorage();
+}
 
-/* Save/Load localStorage (image + strokes JSON) */
-function saveAll(){ try{ // image
-    const dataUrl = drawCanvas.toDataURL('image/png'); localStorage.setItem('handdraw_snapshot', dataUrl);
+/* Save/Load localStorage (PNG auto-save as bitmap) */
+function saveToLocalStorage(){
+  try{
+    const dataUrl = drawCanvas.toDataURL('image/png');
+    localStorage.setItem('handdraw_snapshot', dataUrl);
     localStorage.setItem('handdraw_strokes', JSON.stringify(strokes));
-  }catch(e){ console.warn('save local fail', e); } }
-
-function loadFromLocalStorage(){ try{ const dataUrl = localStorage.getItem('handdraw_snapshot'); if(dataUrl){ const img = new Image(); img.onload = ()=> { ctx.drawImage(img,0,0,drawCanvas.width,drawCanvas.height); }; img.src = dataUrl; }
-  const s = localStorage.getItem('handdraw_strokes'); if(s){ const parsed = JSON.parse(s); strokes.length = 0; parsed.forEach(st => strokes.push(st)); }
- }catch(e){ console.warn('load fail', e); } }
-
-function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer = setTimeout(()=> saveAll(), 900); }
+  }catch(e){ console.warn('save local fail', e); }
+}
+function loadFromLocalStorage(){
+  try{
+    const dataUrl = localStorage.getItem('handdraw_snapshot');
+    if(dataUrl){
+      const img = new Image();
+      img.onload = ()=> { ctx.drawImage(img,0,0,drawCanvas.width,drawCanvas.height); };
+      img.src = dataUrl;
+    }
+    const s = localStorage.getItem('handdraw_strokes');
+    if(s) {
+      const parsed = JSON.parse(s);
+      strokes.length = 0;
+      parsed.forEach(st => strokes.push(st));
+    }
+  }catch(e){ console.warn('load fail', e); }
+}
 
 /* Save PNG */
-function savePNG(){ const link = document.createElement('a'); link.href = drawCanvas.toDataURL('image/png'); link.download = 'handdraw.png'; link.click(); }
+function savePNG(){
+  const link = document.createElement('a');
+  link.href = drawCanvas.toDataURL('image/png');
+  link.download = 'handdraw.png';
+  link.click();
+}
 
 /* Export simple SVG from strokes (approximate with polyline) */
-function exportSVG(){ const w = drawCanvas.width; const h = drawCanvas.height; let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`; svg += `<rect width="100%" height="100%" fill="none"/>`; for(const s of strokes){ if(!s.points || s.points.length<2) continue; const color = s.color; const width = s.width; const pointsAttr = s.points.map(p=>`${p.x},${p.y}`).join(' '); svg += `<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" points="${pointsAttr}" opacity="${s.eraser?0.15:1}"/>`; } svg += `</svg>`; const blob = new Blob([svg], {type:'image/svg+xml'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'handdraw.svg'; a.click(); setTimeout(()=> URL.revokeObjectURL(url), 5000); }
+function exportSVG(){
+  // build paths from strokes
+  const w = drawCanvas.width;
+  const h = drawCanvas.height;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+  svg += `<rect width="100%" height="100%" fill="none"/>`;
+  for(const s of strokes){
+    if(!s.points || s.points.length<2) continue;
+    // approximate with polyline
+    const color = s.color;
+    const width = s.width;
+    const pointsAttr = s.points.map(p=>`${p.x},${p.y}`).join(' ');
+    svg += `<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" points="${pointsAttr}" opacity="${s.eraser?0.15:1}"/>`;
+  }
+  svg += `</svg>`;
+  const blob = new Blob([svg], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'handdraw.svg'; a.click();
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+}
 
-/* Replay - improved: uses timestamps and overlays; supports pause/resume */
-async function startReplay(){ if(!strokes.length) return; pushHistory(); // overlay
-  const overlay = document.createElement('canvas'); overlay.width = drawCanvas.width; overlay.height = drawCanvas.height; overlay.style.position = 'absolute'; overlay.style.left = '0'; overlay.style.top = '0'; overlay.style.zIndex = 70; overlay.style.pointerEvents = 'none'; document.getElementById('stage').appendChild(overlay);
-  const octx = overlay.getContext('2d'); octx.setTransform(ctx.getTransform());
+/* Replay: draw on a temp canvas by following recorded strokes */
+async function startReplay(){
+  if(!strokes.length) return;
+  // create overlay canvas
+  const overlay = document.createElement('canvas');
+  overlay.width = drawCanvas.width; overlay.height = drawCanvas.height;
+  overlay.style.position = 'absolute'; overlay.style.left = drawCanvas.style.left; overlay.style.top = drawCanvas.style.top;
+  const octx = overlay.getContext('2d');
+  document.getElementById('stage').appendChild(overlay);
+  // clear overlay
+  octx.clearRect(0,0,overlay.width,overlay.height);
 
-  // flatten all stroke timeline into events
-  const events = [];
-  for(const s of strokes){ for(const p of s.points){ events.push({t:p.t, x:p.x, y:p.y, color:s.color, width:s.width, eraser:s.eraser, sid: s._id||0}); } }
-  if(!events.length) return;
-  events.sort((a,b)=>a.t-b.t);
-  const startT = events[0].t;
-  const totalDuration = events[events.length-1].t - startT || 1;
-
-  let i = 0; const playStart = performance.now();
-  return new Promise(resolve=>{
-    function frame(now){
-      const elapsed = now - playStart;
-      const virtualT = startT + (elapsed); // 1:1 speed
-      // draw all points up to virtualT
-      while(i<events.length && events[i].t <= virtualT){
-        const e = events[i];
-        octx.globalCompositeOperation = e.eraser ? 'destination-out' : 'source-over';
-        octx.strokeStyle = e.color; octx.lineWidth = e.width; octx.lineCap = 'round'; octx.lineJoin = 'round';
-        // draw small point (could connect to prev of same stroke id)
-        octx.beginPath(); octx.moveTo(e.x, e.y); octx.lineTo(e.x+0.01, e.y+0.01); octx.stroke();
-        i++;
-      }
-      if(i<events.length) requestAnimationFrame(frame); else{
-        overlay.style.transition='opacity 600ms'; overlay.style.opacity='0'; setTimeout(()=> overlay.remove(), 650); resolve();
-      }
+  // replay strokes sequentially
+  for(const s of strokes){
+    octx.lineJoin='round'; octx.lineCap='round';
+    octx.strokeStyle = s.color;
+    octx.lineWidth = s.width;
+    if(s.eraser) octx.globalCompositeOperation='destination-out'; else octx.globalCompositeOperation='source-over';
+    // draw points over time
+    for(let i=1;i<s.points.length;i++){
+      const p0 = s.points[i-1], p1 = s.points[i];
+      octx.beginPath();
+      octx.moveTo(p0.x,p0.y);
+      octx.lineTo(p1.x,p1.y);
+      octx.stroke();
+      await new Promise(r=>setTimeout(r, 12)); // speed control
     }
-    requestAnimationFrame(frame);
-  });
+    octx.globalCompositeOperation='source-over';
+    await new Promise(r=>setTimeout(r, 120));
+  }
+  // fade & remove
+  overlay.style.transition='opacity 600ms';
+  overlay.style.opacity='0';
+  setTimeout(()=> overlay.remove(), 650);
 }
 
 /* ---------------------------
    Drawing utilities
    --------------------------- */
+
 /* speed-based width */
-function computeWidth(prev, curr, base){ const dx = curr.x - prev.x; const dy = curr.y - prev.y; const dist = Math.hypot(dx,dy); const dt = Math.max(1, curr.t - prev.t); const speed = dist / dt; const min = Math.max(1, base*0.28); const max = Math.max(1, base*1.15); const t = Math.min(1, speed / 1.2); return Math.max(min, max * (1 - t)); }
+function computeWidth(prev, curr, base){
+  const dx = curr.x - prev.x;
+  const dy = curr.y - prev.y;
+  const dist = Math.hypot(dx,dy);
+  const dt = Math.max(1, curr.t - prev.t); // ms
+  const speed = dist / dt; // px/ms
+  // map speed to width
+  // speed 0 -> base*1.1 ; speed large -> base*0.3
+  const min = Math.max(1, base*0.28);
+  const max = Math.max(1, base*1.15);
+  const t = Math.min(1, speed / 1.2); // tuning
+  return Math.max(min, max * (1 - t));
+}
 
-/* Catmull-Rom smoothing (kept) */
-function drawCatmullRomSegment(ctxLocal, pts, color, width, isEraser){ if(pts.length < 4) return; const i = pts.length - 4; const p0 = pts[i], p1 = pts[i+1], p2 = pts[i+2], p3 = pts[i+3]; const steps = 12; if(isEraser) ctxLocal.globalCompositeOperation='destination-out'; else ctxLocal.globalCompositeOperation='source-over'; ctxLocal.strokeStyle = color; ctxLocal.lineJoin = 'round'; ctxLocal.lineCap = 'round'; for(let s=0;s<steps;s++){ const t0 = s / steps; const t1 = (s+1) / steps; const x0 = 0.5*((-p0.x+3*p1.x-3*p2.x+p3.x)*t0*t0*t0 + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t0*t0 + (-p0.x+p2.x)*t0 + p1.x); const y0 = 0.5*((-p0.y+3*p1.y-3*p2.y+p3.y)*t0*t0*t0 + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t0*t0 + (-p0.y+p2.y)*t0 + p1.y); const x1 = 0.5*((-p0.x+3*p1.x-3*p2.x+p3.x)*t1*t1*t1 + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t1*t1 + (-p0.x+p2.x)*t1 + p1.x); const y1 = 0.5*((-p0.y+3*p1.y-3*p2.y+p3.y)*t1*t1*t1 + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t1*t1 + (-p0.y+p2.y)*t1 + p1.y); ctxLocal.beginPath(); ctxLocal.moveTo(x0,y0); ctxLocal.lineTo(x1,y1); ctxLocal.lineWidth = width; ctxLocal.stroke(); } ctxLocal.globalCompositeOperation='source-over'; }
-
-/* add point and draw incremental with smoothing and interpolation */
-function addPointToStroke(stroke, pt){ // smoothing: add averaged point from last N
-  stroke.points.push(pt);
-  // keep timestamps and small interpolation between last and prev if gap
-  if(stroke.points.length>=2){ const a = stroke.points[stroke.points.length-2]; const b = stroke.points[stroke.points.length-1]; const dx = b.x - a.x; const dy = b.y - a.y; const dist = Math.hypot(dx,dy);
-    // interpolate extra points if far apart
-    const MAX_STEP = 18; // px
-    if(dist > MAX_STEP){ const steps = Math.ceil(dist / MAX_STEP); for(let s=1;s<steps;s++){ const t = s/steps; const ip = {x: a.x + dx*t, y: a.y + dy*t, t: a.t + (b.t - a.t)*t}; stroke.points.splice(stroke.points.length-1,0,ip); } }
+/* draw smoothed segment via Catmull-Rom sampling between last 4 points */
+function drawCatmullRomSegment(ctxLocal, pts, color, width, isEraser){
+  if(pts.length < 4) return;
+  // draw only the last segment for efficiency
+  const i = pts.length - 4;
+  const p0 = pts[i], p1 = pts[i+1], p2 = pts[i+2], p3 = pts[i+3];
+  // draw with many t values
+  const steps = 12;
+  if(isEraser) ctxLocal.globalCompositeOperation='destination-out'; else ctxLocal.globalCompositeOperation='source-over';
+  ctxLocal.strokeStyle = color;
+  ctxLocal.lineJoin = 'round';
+  ctxLocal.lineCap = 'round';
+  for(let s=0;s<steps;s++){
+    const t0 = s / steps;
+    const t1 = (s+1) / steps;
+    // compute points
+    const x0 = 0.5*((-p0.x+3*p1.x-3*p2.x+p3.x)*t0*t0*t0 + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t0*t0 + (-p0.x+p2.x)*t0 + p1.x);
+    const y0 = 0.5*((-p0.y+3*p1.y-3*p2.y+p3.y)*t0*t0*t0 + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t0*t0 + (-p0.y+p2.y)*t0 + p1.y);
+    const x1 = 0.5*((-p0.x+3*p1.x-3*p2.x+p3.x)*t1*t1*t1 + (2*p0.x-5*p1.x+4*p2.x-p3.x)*t1*t1 + (-p0.x+p2.x)*t1 + p1.x);
+    const y1 = 0.5*((-p0.y+3*p1.y-3*p2.y+p3.y)*t1*t1*t1 + (2*p0.y-5*p1.y+4*p2.y-p3.y)*t1*t1 + (-p0.y+p2.y)*t1 + p1.y);
+    ctxLocal.beginPath();
+    ctxLocal.moveTo(x0,y0);
+    ctxLocal.lineTo(x1,y1);
+    ctxLocal.lineWidth = width;
+    ctxLocal.stroke();
   }
-  // moving average smooth for last point
-  const len = stroke.points.length; const start = Math.max(0, len - SMOOTHING_WINDOW); let sx=0, sy=0, sc=0; for(let i=start;i<len;i++){ sx+=stroke.points[i].x; sy+=stroke.points[i].y; sc++; } const avg = {x: sx/sc, y: sy/sc, t: stroke.points[len-1].t}; stroke.points[len-1] = avg;
+  ctxLocal.globalCompositeOperation='source-over';
+}
 
-  // draw using Catmull-Rom when we have enough
-  if(stroke.points.length >= 4){ const w = computeWidth(stroke.points[stroke.points.length-2], stroke.points[stroke.points.length-1], stroke.width); drawCatmullRomSegment(ctx, stroke.points.slice(-4), stroke.color, w, stroke.eraser); }
-  else if(stroke.points.length === 2){ const p0 = stroke.points[0], p1 = stroke.points[1]; ctx.beginPath(); ctx.moveTo(p0.x,p0.y); ctx.lineTo(p1.x,p1.y); ctx.lineWidth = stroke.width; ctx.strokeStyle = stroke.eraser ? 'rgba(0,0,0,1)' : stroke.color; ctx.globalCompositeOperation = stroke.eraser ? 'destination-out' : 'source-over'; ctx.stroke(); ctx.globalCompositeOperation='source-over'; }
+/* add point and draw incremental */
+function addPointToStroke(stroke, pt){
+  stroke.points.push(pt);
+  // if we have enough points, draw last segment
+  if(stroke.points.length >= 4){
+    // compute width based on recent speed
+    const last = stroke.points[stroke.points.length - 2];
+    const cur = stroke.points[stroke.points.length - 1];
+    const w = computeWidth(last, cur, stroke.width);
+    drawCatmullRomSegment(ctx, stroke.points.slice(-4), stroke.color, w, stroke.eraser);
+  } else if(stroke.points.length === 2){
+    // draw simple line for first segment
+    const p0 = stroke.points[0], p1 = stroke.points[1];
+    ctx.beginPath();
+    ctx.moveTo(p0.x,p0.y);
+    ctx.lineTo(p1.x,p1.y);
+    ctx.lineWidth = stroke.width;
+    ctx.strokeStyle = stroke.eraser ? 'rgba(0,0,0,1)' : stroke.color;
+    ctx.globalCompositeOperation = stroke.eraser ? 'destination-out' : 'source-over';
+    ctx.stroke();
+    ctx.globalCompositeOperation='source-over';
+  }
 }
 
 /* ---------------------------
-   Gesture helpers
+   Gesture helpers (basic)
    --------------------------- */
-function isOpenHand(landmarks){ let extended=0; const tips=[8,12,16,20]; const pips=[6,10,14,18]; for(let i=0;i<4;i++){ if(landmarks[tips[i]].y < landmarks[pips[i]].y) extended++; } if(landmarks[4].x < landmarks[3].x) extended++; return extended >=4; }
-function isFist(landmarks){ const wrist = landmarks[0]; let sum=0; const tips=[4,8,12,16,20]; for(const t of tips){ const dx=landmarks[t].x - wrist.x; const dy=landmarks[t].y - wrist.y; sum+=Math.hypot(dx,dy); } return sum < 0.45; }
-
-/* detect pinch (index tip and thumb tip) */
-function isPinch(landmarks){ const d = Math.hypot(landmarks[8].x - landmarks[4].x, landmarks[8].y - landmarks[4].y); return d < 0.05; }
-
-/* detect circular gesture approx using last N points of index tip — returns true if movement circles */
-function detectCircle(recent){ if(recent.length < 8) return false; // compute centroid & average radius variance
-  let cx=0, cy=0; for(const p of recent){ cx+=p.x; cy+=p.y; } cx/=recent.length; cy/=recent.length; let meanR=0; for(const p of recent){ meanR += Math.hypot(p.x-cx,p.y-cy); } meanR/=recent.length; let varR=0; for(const p of recent){ const r=Math.hypot(p.x-cx,p.y-cy); varR += Math.abs(r-meanR); } varR/=recent.length; return varR < meanR*0.35 && meanR>20; }
+/* detect open hand (most fingers extended) */
+function isOpenHand(landmarks){
+  // count extended fingers by comparing tip y vs pip y in normalized coords (simple heuristic)
+  let extended = 0;
+  const tips = [8,12,16,20]; // index, middle, ring, pinky
+  const pips = [6,10,14,18];
+  for(let i=0;i<4;i++){
+    if(landmarks[tips[i]].y < landmarks[pips[i]].y) extended++;
+  }
+  // thumb: compare x depending on hand (approx)
+  if(landmarks[4].x < landmarks[3].x) extended++;
+  return extended >= 4;
+}
+/* detect fist (most fingers folded) */
+function isFist(landmarks){
+  // compute avg distance from tips to wrist
+  const wrist = landmarks[0];
+  let sum = 0;
+  const tips = [4,8,12,16,20];
+  for(const t of tips){
+    const dx = landmarks[t].x - wrist.x;
+    const dy = landmarks[t].y - wrist.y;
+    sum += Math.hypot(dx,dy);
+  }
+  // smaller sum -> fist
+  return sum < 0.45; // tuning
+}
 
 /* ---------------------------
    MediaPipe init + frame handling
    --------------------------- */
-async function initCameraAndHands(){ try{ const stream = await navigator.mediaDevices.getUserMedia({video:true}); video.srcObject = stream; // detect track end
-    const [track] = stream.getVideoTracks(); track.addEventListener('ended', ()=> handleCameraStop()); track.addEventListener('mute', ()=> handleCameraStop());
-    video.onloadedmetadata = ()=>{ resizeCanvases(); statusText.textContent = 'Câmera ativa ✅'; setupHands(); loadFromLocalStorage(); running=true; };
-  }catch(err){ console.error(err); showError('Permissão de câmera negada ou indisponível'); statusText.textContent = 'Câmera bloqueada ❌'; }
+async function initCameraAndHands(){
+  try{
+    // request camera first (gives clearer permission errors)
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+    video.onloadedmetadata = ()=>{
+      resizeCanvases();
+      statusText.textContent = 'Câmera ativa ✅';
+      // start hands
+      setupHands();
+      loadFromLocalStorage();
+    };
+  }catch(err){
+    console.error(err);
+    showError('Permissão de câmera negada ou indisponível');
+    statusText.textContent = 'Câmera bloqueada ❌';
+  }
 }
 
-function handleCameraStop(){ statusText.textContent = 'Câmera desconectada — tentando reconectar...'; // try reconnect every 2s
-  const t = setInterval(async ()=>{ try{ const s = await navigator.mediaDevices.getUserMedia({video:true}); clearInterval(t); video.srcObject = s; const [track] = s.getVideoTracks(); track.addEventListener('ended', ()=> handleCameraStop()); statusText.textContent='Câmera ativa ✅'; }catch(e){ console.warn('reconnect failed', e); } }, 2000); }
+function setupHands(){
+  const hands = new Hands({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  });
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.68,
+    minTrackingConfidence: 0.6
+  });
+  hands.onResults(onResults);
 
-function setupHands(){ const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` }); hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.68, minTrackingConfidence: 0.6 }); hands.onResults(onResults);
-  cameraObj = new Camera(video, { onFrame: async ()=>{ await hands.send({image: video}); }, width: video.videoWidth || 1280, height: video.videoHeight || 720 }); cameraObj.start(); }
+  cameraObj = new Camera(video, {
+    onFrame: async ()=>{ await hands.send({image: video}); },
+    width: video.videoWidth || 1280,
+    height: video.videoHeight || 720
+  });
+  cameraObj.start();
+  running = true;
+}
 
-/* variables for gestures */
-let fistStart = 0; const FIST_HOLD_MS = 900; let recentIndexPositions = []; let lastCircleDetect = 0; // for color change
+/* variables for fist detection hold */
+let fistStart = 0;
+const FIST_HOLD_MS = 900;
 
-/* smoothing for HUD cursor (magnetic) */
-let hudPos = {x:0,y:0};
-
-function onResults(results){ const now = performance.now(); // limit HUD redraw
-  if(now - lastHudDraw < HUD_MS) { /* still process gestures but don't redraw HUD often */ }
-  lastHudDraw = now;
-
+function onResults(results){
   hud.clearRect(0,0,hudCanvas.width,hudCanvas.height);
-  if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){ prevPoint=null; recentIndexPositions.length=0; return; }
+  if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){ prevPoint=null; return; }
 
-  // pick primary hand as the one with higher visibility or first
-  const primary = results.multiHandLandmarks[0];
-  const tip = primary[8];
-  let x = tip.x * drawCanvas.width; let y = tip.y * drawCanvas.height; if(mirrorToggle.checked) x = drawCanvas.width - x;
+  const lm = results.multiHandLandmarks[0];
+  const tip = lm[8];
+  let x = tip.x * drawCanvas.width;
+  const y = tip.y * drawCanvas.height;
+  if(mirrorToggle.checked) x = drawCanvas.width - x;
 
-  // magnetic cursor: lerp towards actual
-  hudPos.x += (x - hudPos.x) * 0.25; hudPos.y += (y - hudPos.y) * 0.25;
-
-  // draw pulsing HUD dot
-  hud.beginPath(); hud.arc(hudPos.x, hudPos.y, 12, 0, Math.PI*2); hud.fillStyle = 'rgba(100,200,255,0.12)'; hud.fill(); hud.strokeStyle = 'rgba(120,220,255,0.55)'; hud.lineWidth = 2; hud.stroke(); hud.beginPath(); hud.arc(hudPos.x, hudPos.y, 6, 0, Math.PI*2); hud.fillStyle='rgba(125,211,252,0.9)'; hud.fill();
-
-  // update HUD box info (at capped rate)
-  hudColorEl.style.background = colorEl.value; hudInfo.querySelector('strong').textContent = colorEl.value; hudSize.textContent = thicknessEl.value + 'px';
-
-  // gestures
-  const pinch = isPinch(primary);
-  const open = isOpenHand(primary);
-  const fist = isFist(primary);
-
-  // detect circle gesture from recent positions
-  recentIndexPositions.push({x: hudPos.x, y: hudPos.y, t: now}); if(recentIndexPositions.length>30) recentIndexPositions.shift(); if(now - lastCircleDetect > 1500 && detectCircle(recentIndexPositions)){ // cycle color
-    lastCircleDetect = now; // pick a random hue
-    const h = Math.floor(Math.random()*360); colorEl.value = `hsl(${h} 80% 60%)`; colorEl.dispatchEvent(new Event('input')); showError('Cor alterada por gesto circular');
-  }
-
-  // open hand -> pause/resume
-  if(open){ if(running){ running=false; statusText.textContent='Pausado (gesto)'; } else { running=true; statusText.textContent='Câmera ativa'; } }
-
-  // fist hold to clear
-  if(fist){ if(!fistStart) fistStart = now; else if(now - fistStart > FIST_HOLD_MS){ pushHistory(); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.length=0; showError('Limpo por gesto'); fistStart = 0; } } else fistStart = 0;
-
-  // multiple hands: if second hand exists and is open, use as eraser toggle
-  if(results.multiHandLandmarks.length>1){ const other = results.multiHandLandmarks[1]; const otherOpen = isOpenHand(other); erasing = otherOpen; eraserBtn.classList.toggle('btn-primary', erasing); }
-
-  // drawing logic: if pinch mode enabled
+  const thumb = lm[4];
   let drawNow = true;
-  if(pinchToggle.checked) drawNow = pinch;
-
-  // if drawing, start or continue stroke
-  if(drawNow && running){ const point = {x: hudPos.x, y: hudPos.y, t: now}; // determine eraser width sensitivity by distance of index tip to wrist
-    const wrist = primary[0]; const distToWrist = Math.hypot(primary[8].x - wrist.x, primary[8].y - wrist.y); const eraserWidth = Math.min(200, Math.max(8, (distToWrist*400) + 8));
-
-    if(!currentStroke){ currentStroke = {points:[], color: colorEl.value, width: Number(thicknessEl.value), eraser: erasing}; currentStroke._id = Math.random(); strokes.push(currentStroke); pushHistory(); }
-    // if erasing and use distance-based width
-    if(currentStroke.eraser) currentStroke.width = eraserWidth;
-    addPointToStroke(currentStroke, point);
-    scheduleAutosave();
-  } else {
-    // finish stroke
-    if(currentStroke){ // compress small strokes
-      if(currentStroke.points.length<2){ strokes.pop(); } currentStroke=null; }
+  if(pinchToggle.checked){
+    const d = Math.hypot(tip.x - thumb.x, tip.y - thumb.y);
+    drawNow = d < 0.05;
   }
+
+  // HUD dot
+  hud.beginPath();
+  hud.arc(x, y, 10, 0, Math.PI*2);
+  hud.fillStyle = 'rgba(100,200,255,0.2)';
+  hud.fill();
+  hud.strokeStyle = 'rgba(120,220,255,0.5)';
+  hud.stroke();
+
+  if(drawNow){
+    if(prevPoint){
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = erasing ? 'rgba(0,0,0,1)' : colorEl.value;
+      ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+      ctx.lineWidth = Number(thicknessEl.value);
+      ctx.beginPath();
+      ctx.moveTo(prevPoint.x, prevPoint.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+    prevPoint = {x,y};
+  } else prevPoint = null;
 }
 
 /* init */
 initCameraAndHands();
 
-/* Voice commands (Web Speech API) - listens on button long-press would be better; simple auto-start disabled */
-if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; const rec = new SpeechRecognition(); rec.lang = 'pt-BR'; rec.continuous = false; rec.onresult = (e)=>{ const text = e.results[0][0].transcript.toLowerCase(); if(text.includes('limpar')) { pushHistory(); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.length=0; showError('Limpo por voz'); } if(text.includes('salvar')) savePNG(); if(text.includes('pausar')) { running=false; statusText.textContent='Pausado (voz)'; } if(text.includes('retomar')) { running=true; statusText.textContent='Câmera ativa'; } if(text.includes('undo')) undoAction(); }; /* don't auto-start to respect permissions */ }
+/* voice commands (optional) */
+if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SpeechRecognition();
+  rec.lang = 'pt-BR';
+  rec.continuous = false;
+  rec.onresult = (e)=>{
+    const text = e.results[0][0].transcript.toLowerCase();
+    if(text.includes('limpar')) { pushHistory(); ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height); strokes.length=0; showError('Limpo por voz'); }
+    if(text.includes('salvar')) savePNG();
+    if(text.includes('pausar')) { running=false; statusText.textContent='Pausado (voz)'; }
+    if(text.includes('retomar')) { running=true; statusText.textContent='Câmera ativa'; }
+    if(text.includes('undo')) undoAction();
+  };
+  // start recognition on long-press of help? For simplicity auto-off.
+  // You can wire a button to start rec.start()
+}
+
+/* helper computeWidth reused */
+function computeWidth(prevPt, currPt, base){
+  const dx = currPt.x - prevPt.x;
+  const dy = currPt.y - prevPt.y;
+  const dist = Math.hypot(dx,dy);
+  const dt = Math.max(1, currPt.t - prevPt.t);
+  const speed = dist / dt;
+  const min = Math.max(1, base * 0.28);
+  const max = Math.max(1, base * 1.12);
+  const t = Math.min(1, speed / 1.2);
+  return Math.max(min, max * (1 - t));
+}
 
 /* Theme toggle */
-function toggleTheme(){ darkTheme = !darkTheme; if(darkTheme){ document.body.classList.remove('light'); document.body.classList.add('dark'); } else { document.body.classList.remove('dark'); document.body.classList.add('light'); } }
+function toggleTheme(){
+  darkTheme = !darkTheme;
+  if(darkTheme){
+    document.documentElement.style.setProperty('--bg-dark','#071226');
+    document.body.style.background = 'linear-gradient(180deg,var(--bg-dark),#020617)';
+  } else {
+    document.documentElement.style.setProperty('--bg-dark','#f7f9fb');
+    document.body.style.background = 'linear-gradient(180deg,#f7f9fb,#e6eef8)';
+    // invert some colors quickly for panel/buttons if you want (left as exercise)
+  }
+}
 
 /* Save on unload */
-window.addEventListener('beforeunload', ()=> saveAll());
+window.addEventListener('beforeunload', ()=> saveToLocalStorage());
 
-/* initial UI set */
-updateMirror(); hudColorEl.style.background = colorEl.value; hudSize.textContent = thicknessEl.value + 'px';
-
-/* load previous on start (small delay until canvas size set) */
-setTimeout(()=> loadFromLocalStorage(), 600);
+// CORREÇÃO DO BUG #1: Chamada inicial para garantir que o espelhamento do vídeo está correto ao carregar a página
+updateMirror(); 
 
 </script>
 </body>
