@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>HandDraw Pro — Profissional</title>
 
+<!-- Bootstrap + Icons -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -19,10 +20,6 @@
   .app{display:flex;gap:16px;height:100vh;padding:18px}
   .stage{flex:1;position:relative;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.6)}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.02) saturate(1.05)}
-  /* CORREÇÃO DO BUG: Estilo para espelhar o vídeo horizontalmente */
-  video.mirrored {
-    transform: scaleX(-1);
-  }
   canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   .panel{width:380px;backdrop-filter:blur(8px);background:var(--glass);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
   .title{font-weight:700;font-size:18px}
@@ -104,6 +101,7 @@
   </div>
 </div>
 
+<!-- libs -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -188,17 +186,6 @@ window.addEventListener('resize', resizeCanvases);
 
 /* UI wiring */
 thicknessEl.addEventListener('input', ()=> thickVal.textContent = thicknessEl.value);
-
-// CORREÇÃO DO BUG: Função para aplicar o espelhamento do vídeo no elemento <video>
-function updateMirror(){
-  if(mirrorToggle.checked){
-    video.classList.add('mirrored');
-  } else {
-    video.classList.remove('mirrored');
-  }
-}
-mirrorToggle.addEventListener('change', updateMirror); // Listener para manter o vídeo espelhado em sincronia
-
 eraserBtn.addEventListener('click', ()=> {
   erasing = !erasing;
   eraserBtn.classList.toggle('btn-primary', erasing);
@@ -297,7 +284,7 @@ function exportSVG(){
     const color = s.color;
     const width = s.width;
     const pointsAttr = s.points.map(p=>`${p.x},${p.y}`).join(' ');
-    svg += `<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" opacity="${s.eraser?0.15:1}" points="${pointsAttr}"/>`;
+    svg += `<polyline fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="${width}" points="${pointsAttr}" opacity="${s.eraser?0.15:1}"/>`;
   }
   svg += `</svg>`;
   const blob = new Blob([svg], {type:'image/svg+xml'});
@@ -672,9 +659,6 @@ function toggleTheme(){
 
 /* Save on unload */
 window.addEventListener('beforeunload', ()=> saveToLocalStorage());
-
-// CORREÇÃO DO BUG: Chamada inicial para garantir que o espelhamento do vídeo está correto ao carregar a página
-updateMirror(); 
 
 </script>
 </body>
