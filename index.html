@@ -494,135 +494,43 @@ const FIST_HOLD_MS = 900;
 
 function onResults(results){
   hud.clearRect(0,0,hudCanvas.width,hudCanvas.height);
-  if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){
-    prevHud = null;
-    prevPoint = null;
-    // if user paused, we keep drawing disabled
-    return;
-  }
+  if(!results.multiHandLandmarks || results.multiHandLandmarks.length===0){ prevPoint=null; return; }
+
   const lm = results.multiHandLandmarks[0];
-
-  // compute canvas coords (landmarks are normalized [0..1])
   const tip = lm[8];
-  const rawX = tip.x * drawCanvas.width;
-  const rawY = tip.y * drawCanvas.height;
-  const x = mirrorToggle.checked ? (drawCanvas.width - rawX) : rawX;
-  const y = rawY;
+  let x = tip.x * drawCanvas.width;
+  const y = tip.y * drawCanvas.height;
+  if(mirrorToggle.checked) x = drawCanvas.width - x;
 
-  // detect gestures
-  const open = isOpenHand(lm);
-  const fist = isFist(lm);
-
-  // handle open hand = pause/resume toggle
-  if(open){
-    statusText.textContent = 'Pausado (mão aberta) — mova para retomar';
-    // do not draw
-    prevPoint = null;
-    // short-circuit HUD (still show)
-  } else {
-    statusText.textContent = 'Câmera ativa ✅';
-  }
-
-  // handle fist -> if held for > FIST_HOLD_MS then clear
-  if(fist){
-    if(!fistStart) fistStart = performance.now();
-    else {
-      const held = performance.now() - fistStart;
-      if(held > FIST_HOLD_MS){
-        // clear
-        pushHistory();
-        ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
-        strokes.length = 0;
-        saveToLocalStorage();
-        fistStart = 0;
-        showError('Tela limpa via gesto (punho)');
-      }
-    }
-  } else fistStart = 0;
-
-  // determine drawing (pinch or free)
+  const thumb = lm[4];
   let drawNow = true;
   if(pinchToggle.checked){
-    const thumb = lm[4];
     const d = Math.hypot(tip.x - thumb.x, tip.y - thumb.y);
-    drawNow = d < 0.055; // tuning
+    drawNow = d < 0.05;
   }
 
-  // HUD smoothing (simple low-pass)
-  if(!prevHud) prevHud = {x,y}; 
-  prevHud.x = prevHud.x*0.7 + x*0.3;
-  prevHud.y = prevHud.y*0.7 + y*0.3;
+  // HUD dot
   hud.beginPath();
-  hud.arc(prevHud.x, prevHud.y, 12, 0, Math.PI*2);
-  hud.fillStyle = 'rgba(125,211,252,0.18)';
+  hud.arc(x, y, 10, 0, Math.PI*2);
+  hud.fillStyle = 'rgba(100,200,255,0.2)';
   hud.fill();
-  hud.lineWidth = 1.5;
-  hud.strokeStyle = 'rgba(125,211,252,0.5)';
+  hud.strokeStyle = 'rgba(120,220,255,0.5)';
   hud.stroke();
 
-  // if open hand -> don't draw
-  if(open) { prevPoint = null; return; }
-
-  // if drawing now -> start or continue stroke
   if(drawNow){
-    const t = performance.now();
-    // CORREÇÃO DO BUG #2: Usa o ponto suavizado (prevHud) para o desenho.
-    // Isso garante que o traço sai exatamente de dentro da bolinha HUD.
-    const point = { x: prevHud.x, y: prevHud.y, t: t };
-
-    // if no current stroke, start one
-    if(!currentStroke){
-      pushHistory();
-      currentStroke = { points: [], color: colorEl.value, width: Number(thicknessEl.value), eraser: erasing, start: t };
-      strokes.push(currentStroke);
-    }
-    // append point
-    currentStroke.points.push(point);
-    // incremental draw: take the last 4 points for catmull (if present) or simple line
-    if(currentStroke.points.length >= 4){
-      // to avoid redrawing entire stroke, draw the last spline segment
-      const pts = currentStroke.points;
-      const len = pts.length;
-      const segmentPts = [ pts[len-4], pts[len-3], pts[len-2], pts[len-1] ];
-      // compute dynamic width by speed
-      const w = computeWidth(segmentPts[2], segmentPts[3], currentStroke.width);
-      drawCatmullRomSegment(ctx, segmentPts, currentStroke.color, w, currentStroke.eraser);
-    } else if(currentStroke.points.length === 2){
-      // initial simple line
-      const p0 = currentStroke.points[0], p1 = currentStroke.points[1];
-      ctx.beginPath();
-      ctx.moveTo(p0.x,p0.y);
-      ctx.lineTo(p1.x,p1.y);
-      ctx.strokeStyle = currentStroke.eraser ? 'rgba(0,0,0,1)' : currentStroke.color;
-      ctx.lineWidth = currentStroke.width;
+    if(prevPoint){
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.globalCompositeOperation = currentStroke.eraser ? 'destination-out' : 'source-over';
+      ctx.strokeStyle = erasing ? 'rgba(0,0,0,1)' : colorEl.value;
+      ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+      ctx.lineWidth = Number(thicknessEl.value);
+      ctx.beginPath();
+      ctx.moveTo(prevPoint.x, prevPoint.y);
+      ctx.lineTo(x, y);
       ctx.stroke();
-      ctx.globalCompositeOperation = 'source-over';
     }
-    // throttle auto-save periodically
-    if(t - (lastTime || 0) > 250){
-      saveToLocalStorage();
-      lastTime = t;
-    }
-    prevPoint = point;
-  } else {
-    // ended drawing gesture
-    if(currentStroke){
-      // finalize: if too few points, draw simple line to end
-      if(currentStroke.points.length === 1){
-        const p = currentStroke.points[0];
-        ctx.beginPath();
-        ctx.arc(p.x,p.y, currentStroke.width/2,0,Math.PI*2);
-        ctx.fillStyle = currentStroke.eraser ? 'rgba(0,0,0,1)' : currentStroke.color;
-        ctx.fill();
-      }
-      currentStroke = null;
-      saveToLocalStorage();
-    }
-    prevPoint = null;
-  }
+    prevPoint = {x,y};
+  } else prevPoint = null;
 }
 
 /* init */
